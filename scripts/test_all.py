@@ -127,7 +127,8 @@ async def test_openrouter() -> bool:
         response = await client.chat(
             messages,
             model="anthropic/claude-3.5-sonnet",
-            temperature=0.7
+            temperature=0.7,
+            max_tokens=100,  # 降低 token 数以避免余额不足
         )
 
         print_success(f"响应成功")
