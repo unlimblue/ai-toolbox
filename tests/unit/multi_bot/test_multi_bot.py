@@ -282,7 +282,7 @@ class TestRoleBot:
     def test_initial_state(self, role_bot):
         """Test initial bot state."""
         assert role_bot.state == BotState.IDLE
-        assert len(role_bot.context) == 0
+        assert len(role_bot.context_filter.context) == 0
         assert role_bot.current_task is None
     
     def test_is_relevant_when_mentioned(self, role_bot):
@@ -358,8 +358,8 @@ class TestRoleBot:
             with patch.object(role_bot, 'send_message', new=AsyncMock()):
                 await role_bot.handle_message(msg)
         
-        assert len(role_bot.context) == 1
-        assert role_bot.context[0].content == "@test_bot Hello"
+        assert len(role_bot.context_filter.context) == 1
+        assert role_bot.context_filter.context[0].content == "@test_bot Hello"
     
     @pytest.mark.asyncio
     async def test_handle_task_changes_state(self, role_bot):

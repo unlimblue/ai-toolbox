@@ -10,6 +10,7 @@ import discord
 from ..providers import create_provider
 from ..providers.base import ChatMessage
 from .models import UnifiedMessage, CrossChannelTask, BotState, BotConfig
+from .context_filter import ContextFilter, RelevanceScorer
 
 logger = logging.getLogger(__name__)
 
@@ -34,9 +35,12 @@ class RoleBot:
         self.config = config
         self.bot_id = config.bot_id
         self.state = BotState.IDLE
-        self.context: List[UnifiedMessage] = []
         self.current_task: Optional[CrossChannelTask] = None
         self.max_context = 15
+        
+        # Context management
+        self.context_filter = ContextFilter(bot_id=self.bot_id, max_context=self.max_context)
+        self.relevance_scorer = RelevanceScorer(bot_id=self.bot_id)
         
         # Discord client (for sending messages)
         self._client: Optional[discord.Client] = None
@@ -75,10 +79,8 @@ class RoleBot:
             message: UnifiedMessage to process
         """
         # Update context if relevant
-        if self._is_relevant(message):
-            self.context.append(message)
-            if len(self.context) > self.max_context:
-                self.context = self.context[-self.max_context:]
+        added = self.context_filter.add_message(message)
+        if added:
             logger.debug(f"Bot {self.bot_id} added message to context")
         
         # Handle based on state
@@ -117,20 +119,7 @@ class RoleBot:
     
     def _is_relevant(self, message: UnifiedMessage) -> bool:
         """Check if message is relevant to this bot."""
-        # Mentioned in message
-        if self.bot_id in message.mentions:
-            return True
-        
-        # Own message
-        if message.author_id == self.bot_id:
-            return True
-        
-        # In same channel during discussion
-        if self.state == BotState.DISCUSSING and self.current_task:
-            if message.channel_id == self.current_task.target_channel:
-                return True
-        
-        return False
+        return self.context_filter._is_relevant(message)
     
     def _should_respond(self, message: UnifiedMessage) -> bool:
         """Determine if bot should respond to message."""
@@ -148,14 +137,14 @@ class RoleBot:
         """Check if discussion should conclude."""
         if not self.current_task:
             return
-        
+
         # Trigger conditions
         trigger_words = ["结论", "定论", "结果", "就这样", "同意"]
         has_trigger = any(word in message.content for word in trigger_words)
-        
+
         # Discussion length
-        discussion_length = len(self.context)
-        
+        discussion_length = len(self.context_filter.context)
+
         if has_trigger or discussion_length >= 10:
             logger.info(f"Bot {self.bot_id} triggering conclusion")
             asyncio.create_task(self._form_conclusion())
@@ -163,12 +152,8 @@ class RoleBot:
     async def _generate_response(self, message: UnifiedMessage) -> Optional[str]:
         """Generate AI response."""
         try:
-            # Build context
-            context_messages = self.context[-10:]
-            context_text = "\n".join([
-                f"{m.author_name}: {m.content}"
-                for m in context_messages
-            ])
+            # Build context using context filter
+            context_text = self.context_filter.get_context_for_prompt(limit=10)
             
             # Build prompt
             prompt = f"""相关对话：
@@ -210,11 +195,8 @@ class RoleBot:
         self.state = BotState.REPORTING
         
         try:
-            # Generate conclusion
-            discussion = "\n".join([
-                f"{m.author_name}: {m.content}"
-                for m in self.context[-20:]
-            ])
+            # Generate conclusion using context
+            discussion = self.context_filter.get_context_for_prompt(limit=20)
             
             prompt = f"""基于以下讨论，形成简洁结论：
 
@@ -247,7 +229,7 @@ class RoleBot:
             # Reset state
             self.state = BotState.IDLE
             self.current_task = None
-            self.context = []
+            self.context_filter.clear()
     
     async def send_message(self, channel_id: str, content: str):
         """
