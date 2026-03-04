@@ -18,6 +18,8 @@ from ai_toolbox.tools import (
     format_json_tool,
     read_file_tool,
     list_directory_tool,
+    WebSearchTool,
+    WebSearchNewsTool,
 )
 from ai_toolbox.agent import Agent
 
@@ -161,6 +163,8 @@ async def _agent_async(provider: str, prompt: str, tools_str: str, max_iteration
         "format_json": format_json_tool,
         "read_file": read_file_tool,
         "list_directory": list_directory_tool,
+        "web_search": WebSearchTool(),
+        "web_search_news": WebSearchNewsTool(),
     }
     
     for name in tool_names:

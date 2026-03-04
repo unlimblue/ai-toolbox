@@ -5,6 +5,7 @@
 - ToolRegistry: 工具注册表
 - ToolExecutor: 工具执行器
 - 内置工具集
+- 网络搜索工具
 
 示例:
     >>> from ai_toolbox.tools import ToolRegistry, calculator_tool
@@ -27,6 +28,7 @@ from .builtin import (
     read_file_tool,
     list_directory_tool,
 )
+from .web_search import WebSearchTool, WebSearchNewsTool, create_web_search_tools
 
 __all__ = [
     # 基础类
@@ -47,4 +49,8 @@ __all__ = [
     "format_json_tool",
     "read_file_tool",
     "list_directory_tool",
+    # 网络搜索
+    "WebSearchTool",
+    "WebSearchNewsTool",
+    "create_web_search_tools",
 ]
