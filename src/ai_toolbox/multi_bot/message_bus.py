@@ -134,11 +134,11 @@ class MessageBus:
         # Extract target channel
         target_channel_id = None
         if "内阁" in content:
-            target_channel_id = "1477312823817277682"
-        elif "兵部" in content:
-            target_channel_id = "1477312823817277683"
-        elif "金銮殿" in content:
             target_channel_id = "1477312823817277681"
+        elif "兵部" in content:
+            target_channel_id = "1477273291528867860"
+        elif "金銮殿" in content:
+            target_channel_id = "1478759781425745940"
         
         if not target_channel_id or not message.mentions:
             return None

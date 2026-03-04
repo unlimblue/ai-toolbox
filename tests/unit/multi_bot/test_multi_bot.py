@@ -113,7 +113,7 @@ class TestConfig:
         assert "兵部" in DYNASTY_CONFIG.channels
         
         jinluan = DYNASTY_CONFIG.channels["金銮殿"]
-        assert jinluan.channel_id == "1477312823817277681"
+        assert jinluan.channel_id == "1478759781425745940"
         assert "chengxiang" in jinluan.allowed_bots
         assert "taiwei" in jinluan.allowed_bots
     
@@ -128,7 +128,7 @@ class TestConfig:
     
     def test_get_channel_by_id(self):
         """Test getting channel by ID."""
-        channel = DYNASTY_CONFIG.get_channel_by_id("1477312823817277681")
+        channel = DYNASTY_CONFIG.get_channel_by_id("1478759781425745940")
         assert channel.name == "金銮殿"
     
     def test_get_channel_by_id_invalid(self):
@@ -143,7 +143,7 @@ class TestConfig:
     
     def test_get_allowed_bots_for_channel(self):
         """Test getting allowed bots for channel."""
-        bots = DYNASTY_CONFIG.get_allowed_bots_for_channel("1477312823817277681")
+        bots = DYNASTY_CONFIG.get_allowed_bots_for_channel("1478759781425745940")
         assert "chengxiang" in bots
         assert "taiwei" in bots
 
@@ -191,7 +191,7 @@ class TestMessageBus:
             author_id="user1",
             author_name="User",
             content="Hello",
-            channel_id="1477312823817277681",
+            channel_id="1478759781425745940",
             timestamp=datetime.now(),
             mentions=["test_bot"]
         )
@@ -465,7 +465,7 @@ class TestIntegration:
             author_id="user1",
             author_name="皇帝",
             content="@丞相 @太尉 去内阁商议",
-            channel_id="1477312823817277681",  # 金銮殿
+            channel_id="1478759781425745940",  # 金銮殿
             timestamp=datetime.now(),
             mentions=["chengxiang", "taiwei"]
         )
@@ -473,7 +473,7 @@ class TestIntegration:
         task = bus._parse_cross_channel_task(msg)
         
         assert task is not None
-        assert task.source_channel == "1477312823817277681"
-        assert task.target_channel == "1477312823817277682"  # 内阁
+        assert task.source_channel == "1478759781425745940"
+        assert task.target_channel == "1477312823817277681"  # 内阁
         assert "chengxiang" in task.target_bots
         assert "taiwei" in task.target_bots

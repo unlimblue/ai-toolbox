@@ -98,19 +98,19 @@ def build_system_prompt(role_name: str, base_prompt: str = BASE_SYSTEM_PROMPT) -
 
 CHANNEL_CONFIGS = {
     "金銮殿": ChannelConfig(
-        channel_id="1477312823817277681",
+        channel_id="1478759781425745940",
         name="金銮殿",
         description="皇帝召见群臣，商议国事",
         allowed_bots=["chengxiang", "taiwei"]
     ),
     "内阁": ChannelConfig(
-        channel_id="1477312823817277682",
+        channel_id="1477312823817277681",
         name="内阁",
         description="内阁议事，商讨政策",
         allowed_bots=["chengxiang", "taiwei"]
     ),
     "兵部": ChannelConfig(
-        channel_id="1477312823817277683",
+        channel_id="1477273291528867860",
         name="兵部",
         description="军事防务，安全事务",
         allowed_bots=["taiwei"]
