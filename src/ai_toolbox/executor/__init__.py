@@ -1,19 +1,18 @@
-"""Executor 模块.
+"""Executor 模块 - 沙盒执行器.
 
-任务执行和管理功能，支持异步执行、并发控制、超时和重试。
+支持执行 bash 脚本、Python 代码等。
 
 示例:
-    from ai_toolbox.executor import AsyncExecutor
+    from ai_toolbox.executor import SandboxExecutor
     
-    executor = AsyncExecutor(max_workers=4)
-    result = await executor.execute(my_function, args)
+    executor = SandboxExecutor()
+    result = await executor.run("ls -la")
+    print(result.stdout)
 """
 
-from .core import AsyncExecutor, SyncExecutor, TaskResult, create_executor
+from .core import SandboxExecutor, ExecutionResult
 
 __all__ = [
-    "AsyncExecutor",
-    "SyncExecutor",
-    "TaskResult",
-    "create_executor",
+    "SandboxExecutor",
+    "ExecutionResult",
 ]

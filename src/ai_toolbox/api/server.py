@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from ai_toolbox.core import get_logger, settings
 from ai_toolbox.providers import ChatMessage, create_provider
 from ai_toolbox.providers.base import BaseProvider
-from ai_toolbox.executor import AsyncExecutor
+from ai_toolbox.executor import SandboxExecutor
 
 logger = get_logger(__name__)
 
@@ -53,6 +53,23 @@ class ChatResponse(BaseModel):
     content: str
     model: str
     usage: dict[str, int] | None = None
+
+
+class ExecutionRequest(BaseModel):
+    """执行请求."""
+
+    command: str
+    timeout: float = 30.0
+
+
+class ExecutionResponse(BaseModel):
+    """执行响应."""
+
+    success: bool
+    stdout: str
+    stderr: str
+    return_code: int
+    duration: float
 
 
 def get_client(provider: str) -> BaseProvider:
@@ -121,12 +138,36 @@ async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
-@app.get("/v1/executor/info")
-async def executor_info() -> dict[str, Any]:
-    """执行器信息."""
-    return {
-        "name": "AsyncExecutor",
-        "description": "异步任务执行器，支持并发控制和超时",
-        "usage": "from ai_toolbox.executor import AsyncExecutor",
-        "example": "executor = AsyncExecutor(max_workers=4)"
-    }
+@app.post("/v1/execute", response_model=ExecutionResponse)
+async def execute_command(
+    request: ExecutionRequest,
+) -> ExecutionResponse:
+    """执行 shell 命令（沙盒）."""
+    executor = SandboxExecutor(timeout=request.timeout)
+    result = await executor.run(request.command)
+    
+    return ExecutionResponse(
+        success=result.success,
+        stdout=result.stdout,
+        stderr=result.stderr,
+        return_code=result.return_code,
+        duration=result.duration
+    )
+
+
+@app.get("/v1/search")
+async def search_web(q: str, max_results: int = 5) -> dict[str, Any]:
+    """网络搜索."""
+    from ai_toolbox.web_search import WebSearchTool
+    
+    try:
+        tool = WebSearchTool(max_results=max_results)
+        result = await tool.execute(q)
+        return {
+            "success": True,
+            "query": q,
+            "result": result
+        }
+    except Exception as e:
+        logger.error(f"Search failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

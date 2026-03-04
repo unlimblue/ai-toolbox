@@ -8,7 +8,7 @@ import click
 from ai_toolbox.core import get_logger, settings
 from ai_toolbox.providers import ChatMessage, create_provider
 from ai_toolbox.web_search import WebSearchTool
-from ai_toolbox.executor import AsyncExecutor
+from ai_toolbox.executor import SandboxExecutor
 
 logger = get_logger(__name__)
 
@@ -66,6 +66,48 @@ async def _search_async(query: str) -> None:
 
 
 @cli.command()
+@click.option("--command", "-c", required=True, help="要执行的命令")
+@click.option("--timeout", "-t", default=30.0, help="超时时间（秒）")
+def exec(command: str, timeout: float) -> None:
+    """执行 shell 命令（沙盒）."""
+    asyncio.run(_exec_async(command, timeout))
+
+
+async def _exec_async(command: str, timeout: float) -> None:
+    """异步执行实现."""
+    executor = SandboxExecutor(timeout=timeout)
+    result = await executor.run(command)
+    
+    if result.stdout:
+        click.echo(result.stdout)
+    if result.stderr:
+        click.echo(result.stderr, err=True)
+    
+    if not result.success:
+        click.echo(f"执行失败 (返回码: {result.return_code})", err=True)
+
+
+@cli.command()
+@click.option("--script", "-s", required=True, help="脚本内容")
+@click.option("--language", "-l", default="bash", help="脚本语言 (bash, python, sh)")
+@click.option("--timeout", "-t", default=30.0, help="超时时间（秒）")
+def script(script: str, language: str, timeout: float) -> None:
+    """执行脚本（沙盒）."""
+    asyncio.run(_script_async(script, language, timeout))
+
+
+async def _script_async(script_content: str, language: str, timeout: float) -> None:
+    """异步脚本执行实现."""
+    executor = SandboxExecutor(timeout=timeout)
+    result = await executor.run_script(script_content, language)
+    
+    if result.stdout:
+        click.echo(result.stdout)
+    if result.stderr:
+        click.echo(result.stderr, err=True)
+
+
+@cli.command()
 @click.option("--provider", "-p", default="kimi", help="AI 提供商")
 def models(provider: str) -> None:
     """列出可用模型."""
@@ -80,16 +122,6 @@ def models(provider: str) -> None:
     click.echo(f"{provider} 可用模型:")
     for m in model_list:
         click.echo(f"  - {m}")
-
-
-@cli.command()
-@click.option("--workers", "-w", default=4, help="并发工作数")
-def executor_info(workers: int) -> None:
-    """执行器信息."""
-    click.echo(f"Executor 配置:")
-    click.echo(f"  并发工作数: {workers}")
-    click.echo(f"  使用: from ai_toolbox.executor import AsyncExecutor")
-    click.echo(f"  示例: executor = AsyncExecutor(max_workers={workers})")
 
 
 def _get_api_key(provider: str) -> str | None:
