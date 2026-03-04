@@ -124,6 +124,84 @@ def models(provider: str) -> None:
         click.echo(f"  - {m}")
 
 
+# GitHub Issue 命令组
+@cli.group()
+def issue():
+    """GitHub Issue 管理."""
+    pass
+
+
+@issue.command()
+@click.option("--title", "-t", required=True, help="Issue 标题")
+@click.option("--body", "-b", help="Issue 内容")
+@click.option("--repo", "-r", help="仓库 (格式: owner/repo)")
+def create(title: str, body: str | None, repo: str | None) -> None:
+    """创建 GitHub Issue."""
+    asyncio.run(_issue_create_async(title, body, repo))
+
+
+async def _issue_create_async(title: str, body: str | None, repo: str | None) -> None:
+    """异步创建 Issue."""
+    try:
+        from ai_toolbox.github import GitHubIssueManager
+        
+        manager = GitHubIssueManager(repo=repo)
+        issue = await manager.create_issue(title=title, body=body)
+        
+        click.echo(f"✅ Issue 创建成功!")
+        click.echo(f"   编号: #{issue['number']}")
+        click.echo(f"   标题: {issue['title']}")
+        click.echo(f"   链接: {issue['html_url']}")
+    except Exception as e:
+        click.echo(f"❌ 创建失败: {e}", err=True)
+
+
+@issue.command()
+@click.option("--repo", "-r", help="仓库 (格式: owner/repo)")
+@click.option("--limit", "-l", default=10, help="数量限制")
+def list(repo: str | None, limit: int) -> None:
+    """列出 GitHub Issues."""
+    asyncio.run(_issue_list_async(repo, limit))
+
+
+async def _issue_list_async(repo: str | None, limit: int) -> None:
+    """异步列出 Issues."""
+    try:
+        from ai_toolbox.github import GitHubIssueManager
+        
+        manager = GitHubIssueManager(repo=repo)
+        issues = await manager.list_issues(limit=limit)
+        
+        click.echo(f"📋 Issues ({len(issues)}):")
+        for issue in issues:
+            state = "🟢" if issue["state"] == "open" else "🔴"
+            click.echo(f"   {state} #{issue['number']}: {issue['title']}")
+    except Exception as e:
+        click.echo(f"❌ 列出失败: {e}", err=True)
+
+
+@issue.command()
+@click.argument("number", type=int)
+@click.option("--repo", "-r", help="仓库 (格式: owner/repo)")
+def close(number: int, repo: str | None) -> None:
+    """关闭 GitHub Issue."""
+    asyncio.run(_issue_close_async(number, repo))
+
+
+async def _issue_close_async(number: int, repo: str | None) -> None:
+    """异步关闭 Issue."""
+    try:
+        from ai_toolbox.github import GitHubIssueManager
+        
+        manager = GitHubIssueManager(repo=repo)
+        issue = await manager.close_issue(number)
+        
+        click.echo(f"✅ Issue #{number} 已关闭")
+        click.echo(f"   链接: {issue['html_url']}")
+    except Exception as e:
+        click.echo(f"❌ 关闭失败: {e}", err=True)
+
+
 def _get_api_key(provider: str) -> str | None:
     """获取 API key."""
     if provider == "kimi":
