@@ -26,7 +26,6 @@ export OPENROUTER_API_KEY=your_openrouter_key
 | **providers** | AI 对话 (Kimi, OpenRouter) | `ai-toolbox chat -p "你好"` | `POST /v1/chat/completions` | `create_provider("kimi", api_key)` |
 | **web_search** | 网络搜索 (DuckDuckGo) | `ai-toolbox search -q "Python"` | `GET /v1/search?q=Python` | `WebSearchTool().execute("Python")` |
 | **executor** | 沙盒执行 shell/python | `ai-toolbox exec -c "ls -la"` | `POST /v1/execute` | `SandboxExecutor().run("ls -la")` |
-| **github** | GitHub Issue 管理 | `ai-toolbox issue create -t "标题"` | - | `GitHubIssueManager().create_issue()` |
 | **discord_bot** | Discord 机器人 | - | - | `python -m ai_toolbox.discord_bot` |
 
 ---
@@ -123,52 +122,7 @@ print(result.stdout)
 
 ---
 
-### 5. GitHub Issue 管理
-
-**配置:**
-```bash
-export GITHUB_TOKEN=your_github_token
-export GITHUB_REPO=owner/repo  # 可选，默认 unlimblue/ai-toolbox
-```
-
-**CLI:**
-```bash
-# 创建 Issue
-ai-toolbox issue create -t "功能请求" -b "详细描述..."
-
-# 列出 Issues
-ai-toolbox issue list -l 10
-
-# 关闭 Issue
-ai-toolbox issue close 1
-```
-
-**Python:**
-```python
-from ai_toolbox.github import GitHubIssueManager
-
-manager = GitHubIssueManager()
-
-# 创建 Issue
-issue = await manager.create_issue(
-    title="功能请求",
-    body="详细描述...",
-    labels=["enhancement"]
-)
-
-# 列出 Issues
-issues = await manager.list_issues(limit=10)
-
-# 关闭 Issue
-await manager.close_issue(1)
-
-# 添加评论
-await manager.add_comment(1, "补充信息...")
-```
-
----
-
-### 6. Discord Bot
+### 5. Discord Bot
 
 **启动:**
 ```bash
