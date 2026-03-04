@@ -5,6 +5,12 @@ from ai_toolbox.providers import ChatMessage, create_provider
 from ai_toolbox.providers.base import BaseProvider, ChatResponse
 
 
+@pytest.fixture
+def mock_api_key():
+    """模拟 API key."""
+    return "test-api-key-12345"
+
+
 class TestChatMessage:
     """测试 ChatMessage."""
 
