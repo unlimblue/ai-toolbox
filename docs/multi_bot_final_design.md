@@ -43,6 +43,79 @@
 | **执行层** | 丞相 Bot | 丞相 Token | 在金銮殿、内阁发送消息 |
 | **执行层** | 太尉 Bot | 太尉 Token | 在金銮殿、内阁、兵部发送消息 |
 
+## Token 安全管理
+
+### 安全原则
+
+1. **绝不硬编码**: Token 绝不写入代码或配置文件
+2. **环境变量**: 所有 Token 通过环境变量注入
+3. **文件隔离**: Token 存储在独立的 secrets 文件，加入 .gitignore
+4. **最小权限**: 每个 Bot Token 仅拥有必要频道的权限
+
+### Token 存储方案
+
+```bash
+# ~/.openclaw/secrets/cyber_dynasty_tokens.env
+# 该文件已添加到 .gitignore，不会提交到 GitHub
+
+# Hub Bot Token（监听所有频道）
+HUB_BOT_TOKEN=MTQ3ODIyMjg0OTgwOTU4NDI0OQ.xxxxx.xxxxxxxxxxxxx
+
+# 丞相 Bot Token
+CHENGXIANG_BOT_TOKEN=MTQ3NzMxNDM4NTcxMzAzNzQ0NQ.xxxxx.xxxxxxxxxxxxx
+
+# 太尉 Bot Token
+TAIWEI_BOT_TOKEN=MTQ3ODIxNjc3NDE3MTM2NTQ2Ng.xxxxx.xxxxxxxxxxxxx
+
+# AI API Key
+KIMI_API_KEY=sk-xxxxxxxxxxxxxxxx
+```
+
+### 代码中的 Token 使用
+
+```python
+import os
+from dotenv import load_dotenv
+
+# 加载环境变量（从 secrets 文件）
+load_dotenv(os.path.expanduser("~/.openclaw/secrets/cyber_dynasty_tokens.env"))
+
+# 使用环境变量获取 Token
+HUB_TOKEN = os.getenv("HUB_BOT_TOKEN")
+CHENGXIANG_TOKEN = os.getenv("CHENGXIANG_BOT_TOKEN")
+TAIWEI_TOKEN = os.getenv("TAIWEI_BOT_TOKEN")
+KIMI_KEY = os.getenv("KIMI_API_KEY")
+
+# 验证 Token 存在
+if not HUB_TOKEN:
+    raise ValueError("HUB_BOT_TOKEN not set in environment")
+```
+
+### 部署时的安全措施
+
+```bash
+# 1. 生产环境设置文件权限
+chmod 600 ~/.openclaw/secrets/cyber_dynasty_tokens.env
+
+# 2. 使用 systemd 服务时，通过 EnvironmentFile 加载
+# /etc/systemd/system/cyber-dynasty.service
+[Service]
+EnvironmentFile=/root/.openclaw/secrets/cyber_dynasty_tokens.env
+
+# 3. Docker 部署时使用 secrets
+# docker-compose.yml
+secrets:
+  bot_tokens:
+    file: ./secrets/cyber_dynasty_tokens.env
+```
+
+### Token 泄露应急处理
+
+1. **立即在 Discord Developer Portal 重置 Token**
+2. **更新环境变量文件**
+3. **重启服务**
+4. **检查 GitHub 提交历史，确保无泄露**
+
 ## System Prompt 设计
 
 ### 设计原则
@@ -183,14 +256,14 @@ class BotConfig:
     bot_id: str
     name: str
     token_env: str           # Token 环境变量名
-    model_provider: str      # 模型提供商 (kimi, openrouter, etc.)
+    model_provider: str      # 模型提供商
     model_name: str          # 具体模型名
     api_key_env: str         # API Key 环境变量名
     channels: list[str]      # 允许的频道
     persona: BotPersona
 
 
-# 当前配置（2个角色）
+# 当前配置（2个角色，统一使用 Kimi）
 DYNASTY_CONFIG = {
     "channels": {
         "金銮殿": ChannelConfig(
@@ -231,9 +304,9 @@ DYNASTY_CONFIG = {
             bot_id="taiwei",
             name="太尉",
             token_env="TAIWEI_BOT_TOKEN",
-            model_provider="openrouter",
-            model_name="anthropic/claude-3.5-sonnet",
-            api_key_env="OPENROUTER_API_KEY",
+            model_provider="kimi",
+            model_name="kimi-k2-5",  # 统一使用 Kimi
+            api_key_env="KIMI_API_KEY",
             channels=["金銮殿", "内阁", "兵部"],
             persona=BotPersona(
                 name="太尉",
@@ -248,13 +321,13 @@ DYNASTY_CONFIG = {
 ### 扩展示例（未来添加新角色）
 
 ```python
-# 添加御史大夫
+# 添加御史大夫（同样使用 Kimi）
 DYNASTY_CONFIG["bots"]["yushi"] = BotConfig(
     bot_id="yushi",
     name="御史大夫",
     token_env="YUSHI_BOT_TOKEN",
     model_provider="kimi",
-    model_name="kimi-k1-6",
+    model_name="kimi-k2-5",
     api_key_env="KIMI_API_KEY",
     channels=["金銮殿", "都察院"],
     persona=BotPersona(
@@ -273,15 +346,13 @@ DYNASTY_CONFIG["channels"]["都察院"] = ChannelConfig(
 )
 ```
 
-### 模型差异化配置
-
-不同角色可使用不同模型，实现能力差异化：
+### 模型配置
 
 | 角色 | 模型提供商 | 模型 | 特点 |
 |------|-----------|------|------|
 | 丞相 | Kimi | kimi-k2-5 | 强大的推理和规划能力 |
-| 太尉 | OpenRouter | Claude-3.5-Sonnet | 快速响应和执行力 |
-| 未来-御史大夫 | Kimi | kimi-k1-6 | 长文本分析能力 |
+| 太尉 | Kimi | kimi-k2-5 | 强大的推理和规划能力 |
+| 未来角色 | Kimi | kimi-k2-5 | 统一使用 Kimi 便于管理 |
 
 ## 核心组件（支持扩展）
 
@@ -352,11 +423,11 @@ class MessageBus:
         return bot_id in self.channel_map.get(message.channel_id, [])
 ```
 
-### 3. Role Bot（执行层，支持多模型）
+### 3. Role Bot（执行层）
 
 ```python
 class RoleBot:
-    """角色 Bot - 支持不同模型提供商"""
+    """角色 Bot"""
     
     def __init__(self, config: BotConfig):
         self.config = config
@@ -368,7 +439,7 @@ class RoleBot:
         self.current_task: CrossChannelTask | None = None
     
     def get_ai_client(self):
-        """根据配置创建 AI 客户端"""
+        """创建 AI 客户端"""
         api_key = os.getenv(self.config.api_key_env)
         return create_provider(
             self.config.model_provider,
@@ -390,7 +461,7 @@ class RoleBot:
             await self.send_message(message.channel_id, response)
     
     async def generate_response(self, message: UnifiedMessage) -> str:
-        """生成响应 - 使用配置的模型"""
+        """生成响应"""
         context = "\n".join([f"{m.author_name}: {m.content}" for m in self.context[-10:]])
         
         prompt = f"""{self.config.persona.system_prompt}
@@ -484,10 +555,468 @@ DISCUSSING → REPORTING: 形成结论
 REPORTING → IDLE: 汇报完成
 ```
 
+## 测试方案
+
+### 测试原则
+
+1. **分层测试**: 单元测试 → 集成测试 → 端到端测试
+2. **模拟优先**: 使用 mock 避免真实 Discord/API 调用
+3. **场景覆盖**: 覆盖正常流程和异常边界
+4. **自动化**: 所有测试可自动运行
+
+### 1. 单元测试
+
+#### 1.1 Hub Listener 测试
+
+```python
+import pytest
+from unittest.mock import Mock, AsyncMock, patch
+
+class TestHubListener:
+    """Hub Listener 单元测试"""
+    
+    @pytest.fixture
+    def mock_discord_client(self):
+        """模拟 Discord 客户端"""
+        with patch('discord.Client') as mock:
+            yield mock
+    
+    @pytest.fixture
+    def hub_listener(self):
+        callback = AsyncMock()
+        return HubListener(token="test_token", on_message=callback)
+    
+    @pytest.mark.asyncio
+    async def test_ignore_own_message(self, hub_listener):
+        """测试忽略自己的消息"""
+        # 模拟自己发送的消息
+        own_message = Mock()
+        own_message.author.id = hub_listener.client.user.id
+        
+        # 触发 on_message
+        await hub_listener.client.event_handlers['on_message'](own_message)
+        
+        # 验证回调未被调用
+        hub_listener.on_message.assert_not_called()
+    
+    @pytest.mark.asyncio
+    async def test_forward_other_message(self, hub_listener):
+        """测试转发他人消息"""
+        # 模拟他人消息
+        other_message = Mock()
+        other_message.author.id = 12345  # 不同 ID
+        other_message.content = "测试消息"
+        
+        # 触发 on_message
+        await hub_listener.client.event_handlers['on_message'](other_message)
+        
+        # 验证回调被调用
+        hub_listener.on_message.assert_called_once()
+```
+
+#### 1.2 Message Bus 测试
+
+```python
+class TestMessageBus:
+    """Message Bus 单元测试"""
+    
+    @pytest.fixture
+    def message_bus(self):
+        return MessageBus()
+    
+    @pytest.fixture
+    def mock_bot(self):
+        bot = Mock()
+        bot.handle_message = AsyncMock()
+        bot.handle_task = AsyncMock()
+        return bot
+    
+    def test_register_bot(self, message_bus, mock_bot):
+        """测试 Bot 注册"""
+        mock_bot.bot_id = "chengxiang"
+        message_bus.register_bot(mock_bot, ["金銮殿", "内阁"])
+        
+        assert "chengxiang" in message_bus.role_bots
+        assert "chengxiang" in message_bus.channel_map["金銮殿"]
+        assert "chengxiang" in message_bus.channel_map["内阁"]
+    
+    @pytest.mark.asyncio
+    async def test_deliver_to_mentioned_bot(self, message_bus, mock_bot):
+        """测试消息投递给被 @ 的 Bot"""
+        mock_bot.bot_id = "chengxiang"
+        message_bus.register_bot(mock_bot, ["金銮殿"])
+        
+        message = UnifiedMessage(
+            id="1",
+            author_id="123",
+            author_name="皇帝",
+            content="@丞相 测试",
+            channel_id="1477312823817277681",
+            timestamp=datetime.now(),
+            mentions=["chengxiang"]
+        )
+        
+        await message_bus.publish(message)
+        
+        mock_bot.handle_message.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_cross_channel_task_parsing(self, message_bus):
+        """测试跨频道任务解析"""
+        message = UnifiedMessage(
+            id="1",
+            author_id="123",
+            author_name="皇帝",
+            content="@丞相 @太尉 去内阁商议",
+            channel_id="1477312823817277681",
+            timestamp=datetime.now(),
+            mentions=["chengxiang", "taiwei"]
+        )
+        
+        task = message_bus.parse_cross_channel_task(message)
+        
+        assert task is not None
+        assert task.target_channel == "1477312823817277682"  # 内阁
+        assert "chengxiang" in task.target_bots
+        assert "taiwei" in task.target_bots
+```
+
+#### 1.3 Role Bot 测试
+
+```python
+class TestRoleBot:
+    """Role Bot 单元测试"""
+    
+    @pytest.fixture
+    def bot_config(self):
+        return BotConfig(
+            bot_id="chengxiang",
+            name="丞相",
+            token_env="TEST_TOKEN",
+            model_provider="kimi",
+            model_name="kimi-k2-5",
+            api_key_env="TEST_API_KEY",
+            channels=["金銮殿"],
+            persona=BotPersona(
+                name="丞相",
+                description="测试",
+                system_prompt="你是丞相"
+            )
+        )
+    
+    @pytest.fixture
+    def role_bot(self, bot_config):
+        with patch.dict(os.environ, {"TEST_TOKEN": "test", "TEST_API_KEY": "test"}):
+            return RoleBot(bot_config)
+    
+    def test_is_relevant_when_mentioned(self, role_bot):
+        """测试被 @ 时判定为相关"""
+        message = UnifiedMessage(
+            id="1",
+            author_id="123",
+            author_name="皇帝",
+            content="@丞相 测试",
+            channel_id="1477312823817277681",
+            timestamp=datetime.now(),
+            mentions=["chengxiang"]
+        )
+        
+        assert role_bot.is_relevant(message) is True
+    
+    @pytest.mark.asyncio
+    async def test_state_transition_to_discussing(self, role_bot):
+        """测试状态转换到 DISCUSSING"""
+        task = CrossChannelTask(
+            task_id="test_task",
+            source_channel="金銮殿",
+            target_channel="内阁",
+            target_bots=["chengxiang"],
+            instruction="测试任务",
+            status="pending"
+        )
+        
+        with patch.object(role_bot, 'send_message', new=AsyncMock()):
+            await role_bot.handle_task(task)
+        
+        assert role_bot.state == BotState.DISCUSSING
+        assert role_bot.current_task == task
+```
+
+### 2. 集成测试
+
+#### 2.1 消息流转测试
+
+```python
+class TestMessageFlow:
+    """消息流转集成测试"""
+    
+    @pytest.fixture
+    async def system(self):
+        """初始化完整系统"""
+        bus = MessageBus()
+        
+        # 创建模拟 Bot
+        chengxiang = MockRoleBot("chengxiang")
+        taiwei = MockRoleBot("taiwei")
+        
+        bus.register_bot(chengxiang, ["金銮殿", "内阁"])
+        bus.register_bot(taiwei, ["金銮殿", "内阁", "兵部"])
+        
+        yield {
+            "bus": bus,
+            "chengxiang": chengxiang,
+            "taiwei": taiwei
+        }
+    
+    @pytest.mark.asyncio
+    async def test_cross_channel_flow(self, system):
+        """测试跨频道完整流程"""
+        bus = system["bus"]
+        chengxiang = system["chengxiang"]
+        taiwei = system["taiwei"]
+        
+        # 1. 皇帝在金銮殿发起跨频道任务
+        emperor_message = UnifiedMessage(
+            id="1",
+            author_id="1477269928720466011",
+            author_name="皇帝",
+            content="@丞相 @太尉 去内阁商议方案",
+            channel_id="1477312823817277681",
+            timestamp=datetime.now(),
+            mentions=["chengxiang", "taiwei"]
+        )
+        
+        await bus.publish(emperor_message)
+        
+        # 2. 验证两个 Bot 都收到任务
+        assert chengxiang.handle_task.called
+        assert taiwei.handle_task.called
+        
+        # 3. 验证 Bot 切换到 DISCUSSING 状态
+        assert chengxiang.state == BotState.DISCUSSING
+        assert taiwei.state == BotState.DISCUSSING
+```
+
+#### 2.2 上下文过滤测试
+
+```python
+class TestContextFilter:
+    """上下文过滤集成测试"""
+    
+    @pytest.mark.asyncio
+    async def test_relevant_message_filtering(self):
+        """测试相关消息过滤"""
+        bot = MockRoleBot("chengxiang")
+        
+        # 添加一些消息到上下文
+        relevant_messages = [
+            UnifiedMessage(id="1", mentions=["chengxiang"], ...),  # 被 @
+            UnifiedMessage(id="2", author_id="chengxiang", ...),   # 自己发的
+        ]
+        
+        irrelevant_messages = [
+            UnifiedMessage(id="3", mentions=["taiwei"], ...),      # 没 @ 我
+            UnifiedMessage(id="4", author_id="hub", ...),          # Hub 的消息
+        ]
+        
+        for msg in relevant_messages + irrelevant_messages:
+            if bot.is_relevant(msg):
+                bot.context.append(msg)
+        
+        # 验证只有相关消息被保存
+        assert len(bot.context) == 2
+        assert all(msg.id in ["1", "2"] for msg in bot.context)
+```
+
+### 3. 端到端测试
+
+#### 3.1 完整场景模拟
+
+```python
+class TestEndToEnd:
+    """端到端测试 - 使用真实 Discord 客户端模拟"""
+    
+    @pytest.fixture(scope="module")
+    def test_env(self):
+        """设置测试环境"""
+        # 使用测试服务器和测试 Token
+        os.environ["HUB_BOT_TOKEN"] = "TEST_HUB_TOKEN"
+        os.environ["CHENGXIANG_BOT_TOKEN"] = "TEST_CHENGXIANG_TOKEN"
+        os.environ["TAIWEI_BOT_TOKEN"] = "TEST_TAIWEI_TOKEN"
+        os.environ["KIMI_API_KEY"] = "TEST_KIMI_KEY"
+        
+        # 使用测试频道 ID
+        TEST_CHANNELS = {
+            "金銮殿": "9999999999999999991",
+            "内阁": "9999999999999999992",
+            "兵部": "9999999999999999993"
+        }
+    
+    @pytest.mark.asyncio
+    @pytest.mark.skipif(not os.getenv("RUN_E2E"), reason="需要 RUN_E2E 环境变量")
+    async def test_full_conversation_flow(self, test_env):
+        """测试完整对话流程"""
+        # 启动完整系统
+        system = await start_test_system()
+        
+        try:
+            # 1. 模拟皇帝发送跨频道指令
+            await simulate_message(
+                channel="金銮殿",
+                author="皇帝",
+                content="@丞相 @太尉 去内阁商议边防方案"
+            )
+            
+            # 2. 等待 Bot 响应
+            await asyncio.sleep(2)
+            
+            # 3. 验证丞相和太尉在金銮殿确认
+            messages = await get_channel_messages("金銮殿")
+            assert any("领旨" in m.content for m in messages)
+            assert any("遵旨" in m.content for m in messages)
+            
+            # 4. 验证 Bot 在内阁开始讨论
+            await simulate_message(
+                channel="内阁",
+                author="丞相",
+                content="奉陛下旨意"
+            )
+            
+            await asyncio.sleep(2)
+            
+            messages = await get_channel_messages("内阁")
+            assert any("奉陛下旨意" in m.content for m in messages)
+            
+        finally:
+            await system.shutdown()
+```
+
+### 4. 性能测试
+
+```python
+class TestPerformance:
+    """性能测试"""
+    
+    @pytest.mark.asyncio
+    async def test_message_throughput(self):
+        """测试消息吞吐量"""
+        bus = MessageBus()
+        
+        # 注册模拟 Bot
+        for i in range(10):
+            bot = MockRoleBot(f"bot_{i}")
+            bus.register_bot(bot, ["test_channel"])
+        
+        # 发送 1000 条消息
+        start_time = time.time()
+        
+        tasks = []
+        for i in range(1000):
+            msg = UnifiedMessage(
+                id=str(i),
+                author_id="123",
+                author_name="test",
+                content=f"消息 {i}",
+                channel_id="test_channel",
+                timestamp=datetime.now(),
+                mentions=[]
+            )
+            tasks.append(bus.publish(msg))
+        
+        await asyncio.gather(*tasks)
+        
+        elapsed = time.time() - start_time
+        throughput = 1000 / elapsed
+        
+        print(f"吞吐量: {throughput:.2f} 消息/秒")
+        assert throughput > 100  # 至少 100 msg/s
+    
+    @pytest.mark.asyncio
+    async def test_context_memory_usage(self):
+        """测试上下文内存使用"""
+        bot = MockRoleBot("test")
+        
+        # 添加大量消息到上下文
+        for i in range(10000):
+            msg = UnifiedMessage(
+                id=str(i),
+                author_id="123",
+                author_name="test",
+                content="x" * 1000,  # 1KB 内容
+                channel_id="test",
+                timestamp=datetime.now(),
+                mentions=["test"]
+            )
+            bot.context.append(msg)
+            
+            # 触发长度限制
+            if len(bot.context) > 15:
+                bot.context = bot.context[-15:]
+        
+        # 验证内存使用合理
+        import sys
+        context_size = sys.getsizeof(bot.context)
+        for msg in bot.context:
+            context_size += sys.getsizeof(msg)
+        
+        # 15 条消息应该小于 50KB
+        assert context_size < 50 * 1024
+```
+
+### 5. 测试覆盖要求
+
+| 组件 | 单元测试 | 集成测试 | 端到端 | 覆盖率目标 |
+|------|----------|----------|--------|-----------|
+| Hub Listener | ✅ | ✅ | ✅ | 90% |
+| Message Bus | ✅ | ✅ | ✅ | 90% |
+| Role Bot | ✅ | ✅ | ✅ | 85% |
+| Context Filter | ✅ | ✅ | - | 85% |
+| Cross Channel | - | ✅ | ✅ | 80% |
+
+### 6. 测试执行命令
+
+```bash
+# 运行所有测试
+pytest tests/ -v
+
+# 仅运行单元测试
+pytest tests/unit/ -v
+
+# 运行集成测试
+pytest tests/integration/ -v
+
+# 运行端到端测试（需要真实环境）
+RUN_E2E=1 pytest tests/e2e/ -v
+
+# 生成覆盖率报告
+pytest --cov=src --cov-report=html
+
+# 性能测试
+pytest tests/performance/ -v
+```
+
 ## 启动代码（支持动态配置）
 
 ```python
+import os
+from dotenv import load_dotenv
+
 async def main():
+    # 从安全位置加载环境变量
+    env_path = os.path.expanduser("~/.openclaw/secrets/cyber_dynasty_tokens.env")
+    load_dotenv(env_path)
+    
+    # 验证必要的环境变量
+    required_vars = [
+        "HUB_BOT_TOKEN",
+        "CHENGXIANG_BOT_TOKEN",
+        "TAIWEI_BOT_TOKEN",
+        "KIMI_API_KEY"
+    ]
+    for var in required_vars:
+        if not os.getenv(var):
+            raise ValueError(f"Missing required environment variable: {var}")
+    
     # 初始化消息总线
     bus = MessageBus()
     
@@ -512,32 +1041,31 @@ if __name__ == "__main__":
 ## 环境变量（支持扩展）
 
 ```bash
+# Token 文件位置：~/.openclaw/secrets/cyber_dynasty_tokens.env
+# 该文件已添加到 .gitignore
+
 # Hub Bot Token（监听用）
-export HUB_BOT_TOKEN="xxx"
+HUB_BOT_TOKEN=xxx
 
 # 丞相 Bot Token（发送用）
-export CHENGXIANG_BOT_TOKEN="xxx"
+CHENGXIANG_BOT_TOKEN=xxx
 
 # 太尉 Bot Token（发送用）
-export TAIWEI_BOT_TOKEN="xxx"
+TAIWEI_BOT_TOKEN=xxx
 
-# 未来扩展：御史大夫
-# export YUSHI_BOT_TOKEN="xxx"
-
-# AI API Keys（支持多提供商）
-export KIMI_API_KEY="xxx"
-export OPENROUTER_API_KEY="xxx"
+# AI API Key（统一使用 Kimi）
+KIMI_API_KEY=xxx
 ```
 
 ## 实施计划
 
-| 阶段 | 内容 | 时间 |
-|------|------|------|
-| Phase 1 | Hub Listener + System Prompt 框架 | 1天 |
-| Phase 2 | Message Bus + 动态配置 | 1天 |
-| Phase 3 | Role Bot + 多模型支持 | 1天 |
-| Phase 4 | 跨频道协调 + 状态机 | 2天 |
-| **总计** | | **5天** |
+| 阶段 | 内容 | 时间 | 测试要求 |
+|------|------|------|----------|
+| Phase 1 | Hub Listener + System Prompt 框架 | 1天 | 单元测试覆盖 90% |
+| Phase 2 | Message Bus + 动态配置 | 1天 | 集成测试通过 |
+| Phase 3 | Role Bot + 上下文过滤 | 1天 | 单元测试覆盖 85% |
+| Phase 4 | 跨频道协调 + 状态机 | 2天 | 端到端测试通过 |
+| **总计** | | **5天** | 整体覆盖率 > 85% |
 
 ## 扩展路线图
 
@@ -553,4 +1081,4 @@ export OPENROUTER_API_KEY="xxx"
 
 ---
 
-*最终设计方案 V2.5 - 支持扩展的多模型架构*
+*最终设计方案 V2.6 - 统一 Kimi，全面测试，Token 安全*
