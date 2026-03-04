@@ -1,4 +1,4 @@
-# AI-Toolbox 架构设计文档
+# AI-Toolbox 架构设计
 
 ## 设计哲学
 
@@ -8,18 +8,74 @@ AI-Toolbox 的核心设计理念是将各个能力拆分为独立的模块，通
 
 ---
 
-## 架构层次
+## 系统架构
+
+```mermaid
+graph TB
+    subgraph 使用层[使用层]
+        CLI[CLI 命令行]
+        API[RESTful API]
+        Discord[Discord Bot]
+        Python[Python API]
+    end
+
+    subgraph 能力层[能力层]
+        subgraph Providers[AI Providers]
+            Kimi[Kimi]
+            OpenRouter[OpenRouter]
+        end
+        
+        subgraph Tools[Tools]
+            Calc[Calculator]
+            Search[WebSearch]
+            Time[Time]
+            File[File]
+            News[News]
+        end
+        
+        Agent[Agent 编排]
+        Vision[Vision 视觉]
+    end
+
+    subgraph 基础层[基础层]
+        Core[Core]
+        Config[Config]
+        Logger[Logger]
+    end
+
+    CLI --> Agent
+    CLI --> Tools
+    API --> Agent
+    Discord --> Agent
+    Discord --> Tools
+    Python --> Providers
+    Python --> Agent
+    Python --> Tools
+
+    Agent --> Providers
+    Agent --> Tools
+    Tools --> Core
+    Providers --> Core
+    Vision --> Providers
+```
+
+---
+
+## 模块详解
 
 ### 1. 基础层 (Core)
 
-提供所有模块共享的基础设施。
+```mermaid
+graph LR
+    Core[Core 模块]
+    Config[Config 配置管理]
+    Logger[Logger 日志系统]
+    
+    Core --> Config
+    Core --> Logger
+```
 
-```
-core/
-├── config.py    # 统一配置管理
-├── logger.py    # 日志系统
-└── exceptions.py # 异常定义
-```
+**职责**: 提供所有模块共享的基础设施
 
 **设计原则**:
 - 零依赖（除标准库外）
@@ -27,92 +83,127 @@ core/
 
 ### 2. 能力层 (Capabilities)
 
-独立的功能模块，每个模块解决一个特定问题。
-
 #### 2.1 Providers - AI 模型接入
 
-```
-providers/
-├── base.py          # 抽象基类
-├── kimi.py          # Kimi 实现
-├── openrouter.py    # OpenRouter 实现
-└── factory.py       # 工厂函数
+```mermaid
+graph TB
+    BaseProvider[BaseProvider 抽象基类]
+    
+    KimiClient[KimiClient]
+    OpenRouterClient[OpenRouterClient]
+    
+    BaseProvider --> KimiClient
+    BaseProvider --> OpenRouterClient
+    
+    Factory[Factory 工厂]
+    Factory --> KimiClient
+    Factory --> OpenRouterClient
 ```
 
-**独立使用**:
-```python
-from ai_toolbox.providers import create_provider
-
-client = create_provider("kimi", api_key)
-response = await client.chat(messages)
-```
-
-**解耦点**:
-- 不同提供商完全独立
-- 通过统一接口切换
-- 新增提供商只需实现基类
+**特点**:
+- 统一接口 `create_provider()`
+- 自动格式转换（Anthropic/OpenAI）
+- 支持文本 + 流式 + 多模态
 
 #### 2.2 Tools - 工具能力
 
-```
-tools/
-├── base.py          # Tool 抽象基类
-├── registry.py      # 工具注册表
-├── executor.py      # 工具执行器
-├── search.py        # 网络搜索
-├── vision.py        # 图像处理
-└── builtin.py       # 内置工具
+```mermaid
+graph TB
+    Tool[Tool 基类]
+    Registry[ToolRegistry 注册表]
+    Executor[ToolExecutor 执行器]
+    
+    Tool --> Registry
+    Registry --> Executor
+    
+    subgraph BuiltInTools[内置工具]
+        Calc[Calculator]
+        Search[WebSearch]
+        Time[Time]
+        File[File]
+    end
+    
+    Tool --> BuiltInTools
 ```
 
-**独立使用**:
-```python
-from ai_toolbox.tools import WebSearchTool
-
-search = WebSearchTool()
-results = await search.search("AI 新闻")
-```
-
-**解耦点**:
+**特点**:
 - 每个 Tool 独立实现
 - 通过 Registry 动态注册
 - Tool 之间无依赖
+- 支持同步和异步
 
 #### 2.3 Agent - 能力编排
 
-```
-agent/
-├── base.py          # Agent 基类
-├── react.py         # ReAct Agent
-└── planner.py       # 任务规划
-```
-
-**组合使用**:
-```python
-from ai_toolbox.agent import Agent
-from ai_toolbox.providers import create_provider
-from ai_toolbox.tools import ToolRegistry, WebSearchTool
-
-# 组合各种能力
-provider = create_provider("openrouter", api_key)
-registry = ToolRegistry()
-registry.register(WebSearchTool())
-
-agent = Agent(provider, registry)
+```mermaid
+graph LR
+    User[用户输入]
+    Agent[Agent]
+    Provider[Provider]
+    Tools[Tools]
+    Response[响应]
+    
+    User --> Agent
+    Agent --> Provider
+    Agent --> Tools
+    Provider --> Agent
+    Tools --> Agent
+    Agent --> Response
 ```
 
-**解耦点**:
-- Agent 不依赖具体 Provider
-- Agent 不依赖具体 Tool
-- 通过接口组合
+**工作流程**:
+1. 接收用户输入
+2. 调用 Provider 获取 AI 响应
+3. 检测是否需要工具
+4. 如需工具，调用 Executor 执行
+5. 将结果返回给 AI
+6. 返回最终响应
+
+#### 2.4 Vision - 多模态支持
+
+```mermaid
+graph TB
+    ImageContent[ImageContent]
+    MultimodalMessage[MultimodalMessage]
+    
+    ImageSource[图像来源]
+    File[文件]
+    URL[URL]
+    Base64[Base64]
+    
+    ImageSource --> File
+    ImageSource --> URL
+    ImageSource --> Base64
+    
+    File --> ImageContent
+    URL --> ImageContent
+    Base64 --> ImageContent
+    
+    ImageContent --> MultimodalMessage
+```
+
+**支持格式**:
+- JPEG, PNG, GIF, WebP
+- 文件、URL、Base64
 
 ### 3. 使用层 (Interfaces)
 
-将能力层封装为不同的使用方式。
-
-```
-cli/          # 命令行接口
-api/          # RESTful API
-discord_bot/  # Discord Bot
+```mermaid
+graph TB
+    subgraph Interfaces[接口层]
+        CLI[CLI<br/>ai-toolbox chat]
+        API[API<br/>/v1/chat]
+        Discord[Discord Bot<br/>/chat]
+    end
+    
+    subgraph CoreLogic[核心逻辑]
+        Agent[Agent]
+        Tools[Tools]
+        Providers[Providers]
+    end
+    
+    CLI --> CoreLogic
+    API --> CoreLogic
+    Discord --> CoreLogic
 ```
 
 **特点**:
@@ -122,28 +213,83 @@ discord_bot/  # Discord Bot
 
 ---
 
+## 数据流
+
+### 工具调用流程
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Agent as Agent
+    participant LLM as AI 模型
+    participant Tool as 工具
+    
+    User->>Agent: 发送消息
+    Agent->>LLM: 请求响应
+    LLM-->>Agent: 返回工具调用
+    Agent->>Tool: 执行工具
+    Tool-->>Agent: 返回结果
+    Agent->>LLM: 发送结果
+    LLM-->>Agent: 返回最终响应
+    Agent-->>User: 返回结果
+```
+
+### Agent 频道模式
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Discord as Discord Bot
+    participant Agent as Agent
+    participant Tools as 工具集
+    
+    Note over User,Tools: 在 Agent 频道中
+    
+    User->>Discord: 直接发送消息
+    Discord->>Agent: 检测为 Agent 频道
+    Agent->>Agent: 处理消息
+    
+    alt 需要工具
+        Agent->>Tools: 调用工具
+        Tools-->>Agent: 返回结果
+    end
+    
+    Agent-->>Discord: 返回响应
+    Discord-->>User: 显示结果
+```
+
+---
+
 ## 模块依赖关系
 
-```
-                    ┌─────────────┐
-                    │   使用层     │
-                    │  CLI/API/   │
-                    │ Discord Bot │
-                    └──────┬──────┘
-                           │
-        ┌──────────────────┼──────────────────┐
-        │                  │                  │
-        ▼                  ▼                  ▼
-   ┌─────────┐       ┌─────────┐       ┌─────────┐
-   │Providers│       │  Tools  │       │  Agent  │
-   └────┬────┘       └────┬────┘       └────┬────┘
-        │                  │                  │
-        └──────────────────┼──────────────────┘
-                           │
-                    ┌──────┴──────┐
-                    │    Core     │
-                    │ Config/Log  │
-                    └─────────────┘
+```mermaid
+graph BT
+    subgraph 上层[上层模块]
+        CLI[CLI]
+        API[API]
+        Discord[Discord Bot]
+    end
+    
+    subgraph 中层[中层模块]
+        Agent[Agent]
+        Tools[Tools]
+        Providers[Providers]
+    end
+    
+    subgraph 下层[下层模块]
+        Core[Core]
+    end
+    
+    CLI --> Agent
+    CLI --> Tools
+    API --> Agent
+    Discord --> Agent
+    Discord --> Tools
+    
+    Agent --> Providers
+    Agent --> Tools
+    Tools --> Core
+    Providers --> Core
 ```
 
 **依赖规则**:
@@ -151,91 +297,6 @@ discord_bot/  # Discord Bot
 2. Providers/Tools 仅依赖 Core
 3. Agent 依赖 Providers + Tools
 4. 使用层依赖所有下层模块
-
----
-
-## 组合示例
-
-### 示例 1: 简单问答 Agent
-
-```python
-from ai_toolbox.providers import create_provider
-from ai_toolbox.agent import Agent
-
-# 仅使用 Provider
-provider = create_provider("kimi", api_key)
-agent = Agent(provider)
-
-response = await agent.run("解释量子计算")
-```
-
-### 示例 2: 搜索增强 Agent
-
-```python
-from ai_toolbox.providers import create_provider
-from ai_toolbox.tools import ToolRegistry, WebSearchTool
-from ai_toolbox.agent import Agent
-
-# Provider + Search
-provider = create_provider("openrouter", api_key)
-registry = ToolRegistry()
-registry.register(WebSearchTool())
-
-agent = Agent(provider, registry)
-response = await agent.run("最新 AI 突破")  # AI 自主搜索
-```
-
-### 示例 3: 多模态 Agent
-
-```python
-from ai_toolbox.providers import create_provider
-from ai_toolbox.tools import (
-    ToolRegistry, 
-    WebSearchTool, 
-    VisionTool,
-    CalculatorTool
-)
-from ai_toolbox.agent import Agent
-
-# 组合所有能力
-provider = create_provider("openrouter", api_key)
-registry = ToolRegistry()
-registry.register(WebSearchTool())
-registry.register(VisionTool())
-registry.register(CalculatorTool())
-
-agent = Agent(provider, registry)
-
-# AI 可以:
-# 1. 分析图片
-# 2. 搜索信息
-# 3. 计算数据
-response = await agent.run("分析这张图表并搜索相关数据")
-```
-
-### 示例 4: 自定义 Tool
-
-```python
-from ai_toolbox.tools import tool, ToolRegistry
-
-@tool(
-    name="my_database",
-    description="查询数据库",
-    parameters={
-        "type": "object",
-        "properties": {
-            "query": {"type": "string"}
-        }
-    }
-)
-async def query_database(query: str) -> str:
-    # 自定义实现
-    return f"查询结果: {query}"
-
-# 注册到 Agent
-registry = ToolRegistry()
-registry.register(query_database)
-```
 
 ---
 
@@ -266,30 +327,36 @@ PROVIDERS["new"] = NewProvider
 ### 添加新 Tool
 
 ```python
-# src/ai_toolbox/tools/my_tool.py
-from .base import Tool
+# 方式 1: 使用 Tool.from_function
+from ai_toolbox.tools import Tool
 
-class MyTool(Tool):
-    name = "my_tool"
-    description = "我的工具"
-    parameters = {...}
-    
-    async def execute(self, **kwargs) -> str:
-        # 实现
-        return "结果"
+def my_tool(param: str) -> str:
+    return f"Result: {param}"
 
-# 使用
-tool = MyTool()
-registry.register(tool)
+tool = Tool.from_function(
+    my_tool,
+    description="我的工具"
+)
+
+# 方式 2: 手动创建
+from ai_toolbox.tools import Tool, ToolParameter
+
+tool = Tool(
+    name="my_tool",
+    description="我的工具",
+    parameters=[
+        ToolParameter("param", "string", "参数")
+    ],
+    function=my_tool
+)
 ```
 
 ### 自定义 Agent
 
 ```python
-# src/ai_toolbox/agent/custom.py
-from .base import BaseAgent
+from ai_toolbox.agent import Agent
 
-class CustomAgent(BaseAgent):
+class CustomAgent(Agent):
     async def run(self, prompt: str) -> str:
         # 自定义逻辑
         # 可以使用 self.provider 和 self.tools
@@ -313,42 +380,23 @@ class CustomAgent(BaseAgent):
 
 ## 与 OpenClaw 的协作
 
-### OpenClaw 作为能力消费者
-
-```python
-# OpenClaw 可以使用 ai-toolbox 的能力
-from ai_toolbox.providers import create_provider
-from ai_toolbox.tools import WebSearchTool
-
-# 在 OpenClaw 中调用
-client = create_provider("kimi", api_key)
-response = await client.chat(messages)
+```mermaid
+graph LR
+    OpenClaw[OpenClaw]
+    AIToolbox[AI-Toolbox]
+    
+    OpenClaw -->|使用| AIToolbox
+    AIToolbox -->|调用| OpenClaw
 ```
 
-### ai-toolbox 消费 OpenClaw 工具
+**互补定位**:
+- **OpenClaw**: 系统级工具、环境控制、多模态输入
+- **AI-Toolbox**: AI 模型统一管理、对外 API、工具编排
 
-```python
-# ai-toolbox 可以将 OpenClaw 工具封装为 Tool
-@tool(name="web_search", ...)
-async def web_search(query: str) -> str:
-    # 调用 OpenClaw 的 web_search
-    result = await openclaw.web_search(query)
-    return result
-```
+**协作模式**:
+- OpenClaw 可以作为 AI-Toolbox 的消费者
+- AI-Toolbox 可以将 OpenClaw 工具封装为 Tool
 
-### 理想协作模式
+---
 
-```
-┌─────────────────────────────────────┐
-│            OpenClaw                  │
-│  系统级工具、环境控制、多模态输入      │
-└──────────────┬──────────────────────┘
-               │
-               │ 调用
-               ▼
-┌─────────────────────────────────────┐
-│           ai-toolbox                 │
-│  AI 模型管理、工具编排、Agent 构建    │
-│  对外 API、Discord Bot              │
-└─────────────────────────────────────┘
-```
+*最后更新: 2026-03-04*
