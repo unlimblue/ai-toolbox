@@ -40,6 +40,10 @@ discord = [
     "discord.py>=2.4.0",
 ]
 
+discord_bot = [
+    "discord.py>=2.4.0",
+]
+
 [project.scripts]
 ai-toolbox = "ai_toolbox.cli.main:cli"
 
