@@ -8,6 +8,7 @@ import click
 from ai_toolbox.core import get_logger, settings
 from ai_toolbox.providers import ChatMessage, create_provider
 from ai_toolbox.web_search import WebSearchTool
+from ai_toolbox.executor import AsyncExecutor
 
 logger = get_logger(__name__)
 
@@ -79,6 +80,16 @@ def models(provider: str) -> None:
     click.echo(f"{provider} 可用模型:")
     for m in model_list:
         click.echo(f"  - {m}")
+
+
+@cli.command()
+@click.option("--workers", "-w", default=4, help="并发工作数")
+def executor_info(workers: int) -> None:
+    """执行器信息."""
+    click.echo(f"Executor 配置:")
+    click.echo(f"  并发工作数: {workers}")
+    click.echo(f"  使用: from ai_toolbox.executor import AsyncExecutor")
+    click.echo(f"  示例: executor = AsyncExecutor(max_workers={workers})")
 
 
 def _get_api_key(provider: str) -> str | None:

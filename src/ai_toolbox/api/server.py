@@ -9,6 +9,7 @@ from pydantic import BaseModel
 from ai_toolbox.core import get_logger, settings
 from ai_toolbox.providers import ChatMessage, create_provider
 from ai_toolbox.providers.base import BaseProvider
+from ai_toolbox.executor import AsyncExecutor
 
 logger = get_logger(__name__)
 
@@ -118,3 +119,14 @@ async def list_models(provider: str = "kimi") -> dict[str, Any]:
 async def health() -> dict[str, str]:
     """健康检查."""
     return {"status": "ok"}
+
+
+@app.get("/v1/executor/info")
+async def executor_info() -> dict[str, Any]:
+    """执行器信息."""
+    return {
+        "name": "AsyncExecutor",
+        "description": "异步任务执行器，支持并发控制和超时",
+        "usage": "from ai_toolbox.executor import AsyncExecutor",
+        "example": "executor = AsyncExecutor(max_workers=4)"
+    }
