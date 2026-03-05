@@ -521,11 +521,25 @@ class RoleBot:
         try:
             channel = self._client.get_channel(int(channel_id))
             if channel:
-                await channel.send(content)
-                logger.info(f"✅ Bot {self.bot_id} sent message to channel {channel_id}: {content[:30]}...")
+                # Log FULL message content for debugging
+                logger.info(f"📤 Bot {self.bot_id} SENDING to {channel_id}: {content}")
                 await self._send_debug(
-                    "✅ Message sent",
-                    {"channel": channel_id, "content": content[:50]}
+                    "📤 SENDING message",
+                    {"channel": channel_id, "content": content, "length": len(content)}
+                )
+                
+                sent_message = await channel.send(content)
+                
+                # Log success with full content
+                logger.info(f"✅ Bot {self.bot_id} SENT to {channel_id}: {content}")
+                await self._send_debug(
+                    "✅ SENT message",
+                    {
+                        "channel": channel_id, 
+                        "content": content,
+                        "message_id": str(sent_message.id),
+                        "has_mentions": bool(sent_message.mentions) if hasattr(sent_message, 'mentions') else 'unknown'
+                    }
                 )
             else:
                 logger.error(f"❌ Bot {self.bot_id}: Channel not found: {channel_id}")
@@ -535,7 +549,8 @@ class RoleBot:
                 )
         except Exception as e:
             logger.error(f"❌ Bot {self.bot_id} error sending message: {e}")
+            logger.error(f"   Failed content: {content[:200]}")
             await self._send_debug(
                 "❌ Error sending message",
-                {"channel": channel_id, "error": str(e)}
+                {"channel": channel_id, "error": str(e), "content": content[:100]}
             )

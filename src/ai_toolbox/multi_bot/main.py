@@ -11,7 +11,7 @@ from .hub_listener import HubListener, discord_message_to_unified
 from .message_bus import MessageBus
 from .role_bot import RoleBot
 from .config_loader import MultiBotConfig, get_config
-from .architecture_builder import build_system_prompt
+from .architecture_builder import build_system_prompt, PromptBuilder
 from .models import BotConfig, BotPersona
 
 logging.basicConfig(
@@ -56,8 +56,12 @@ def create_bot_from_config(bot_id: str, config: MultiBotConfig) -> RoleBot:
     )
     
     # Build architecture info for the bot
-    from .architecture_builder import build_system_architecture_info
-    architecture_info = build_system_architecture_info(bot_id, config)
+    architecture_info = {
+        "bot_id": bot_id,
+        "bot_name": bot_config_dict.get("name", bot_id),
+        "bot_user_id": config.get_user_id_for_bot(bot_id),
+        "bot_role_id": config.get_role_id_for_bot(bot_id),
+    }
     
     return RoleBot(bot_config, architecture_info=architecture_info)
 

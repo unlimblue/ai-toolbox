@@ -1,24 +1,15 @@
 # Development Documents
 
-开发过程文档。
+Current development documentation.
 
 ---
 
-## 文档列表
+## Active Documents
 
-| 文档 | 说明 |
-|------|------|
-| [implementation_plan_fix.md](implementation_plan_fix.md) | 多 Bot 系统修复实施计划 |
+| Document | Description |
+|----------|-------------|
+| [fix_conversation_and_channel.md](fix_conversation_and_channel.md) | Fix for conversation continuity and channel name recognition |
 
----
+## Archive
 
-## 用途
-
-记录开发过程中的：
-- 问题分析
-- 实施方案
-- 决策过程
-
----
-
-*供开发者参考*
+Historical development plans are in [../archive/](../archive/).
