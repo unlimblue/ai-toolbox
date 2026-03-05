@@ -1,49 +1,49 @@
-# AI-Toolbox Documentation
+# AI-Toolbox 文档
 
-AI-Toolbox project documentation.
-
----
-
-## Quick Navigation
-
-### For Users
-| Document | Purpose |
-|----------|---------|
-| [multi-bot/deployment.md](multi-bot/deployment.md) | Deploy the multi-bot system |
-| [multi-bot/testing.md](multi-bot/testing.md) | Test the system |
-| [TEST_CASES.md](TEST_CASES.md) | Specific test scenarios |
-
-### For Developers
-| Document | Purpose |
-|----------|---------|
-| [multi-bot/ARCHITECTURE.md](multi-bot/ARCHITECTURE.md) | **Config-driven architecture (NEW)** |
-| [multi-bot/design.md](multi-bot/design.md) | System design overview |
-| [multi-bot/debug.md](multi-bot/debug.md) | Debug mode usage |
-| [development/fix_conversation_and_channel.md](development/fix_conversation_and_channel.md) | Current fix plan |
-
-### Reference
-| Document | Purpose |
-|----------|---------|
-| [multi-bot/research.md](multi-bot/research.md) | Background research |
-| [archive/](archive/) | Historical documents |
+AI-Toolbox 项目文档中心。
 
 ---
 
-## Directory Structure
+## 快速导航
+
+### 用户文档
+| 文档 | 说明 |
+|------|------|
+| [multi-bot/deployment.md](multi-bot/deployment.md) | 部署多 Bot 系统 |
+| [multi-bot/testing.md](multi-bot/testing.md) | 系统测试指南 |
+| [TEST_CASES.md](TEST_CASES.md) | 具体测试场景 |
+
+### 开发文档
+| 文档 | 说明 |
+|------|------|
+| [multi-bot/ARCHITECTURE.md](multi-bot/ARCHITECTURE.md) | **配置驱动架构（推荐）** |
+| [multi-bot/design.md](multi-bot/design.md) | 系统设计概览 |
+| [multi-bot/debug.md](multi-bot/debug.md) | 调试模式使用 |
+| [development/fix_conversation_and_channel.md](development/fix_conversation_and_channel.md) | 修复方案 |
+
+### 参考资料
+| 文档 | 说明 |
+|------|------|
+| [multi-bot/research.md](multi-bot/research.md) | 背景研究 |
+| [archive/](archive/) | 历史文档 |
+
+---
+
+## 目录结构
 
 ```
 docs/
-├── README.md                 # This file
-├── TEST_CASES.md            # Test scenarios
-├── multi-bot/               # Multi-bot system docs
-│   ├── deployment.md
-│   ├── design.md
-│   ├── testing.md
-│   ├── debug.md
-│   └── research.md
-├── development/             # Active development docs
+├── README.md                 # 本文档
+├── TEST_CASES.md            # 测试场景
+├── multi-bot/               # 多 Bot 系统文档
+│   ├── ARCHITECTURE.md      # 架构文档
+│   ├── deployment.md        # 部署指南
+│   ├── design.md            # 设计文档
+│   ├── testing.md           # 测试指南
+│   └── debug.md             # 调试指南
+├── development/             # 开发文档
 │   └── fix_conversation_and_channel.md
-└── archive/                 # Historical documents
+└── archive/                 # 历史归档
     ├── 2026-03-04.md
     ├── 2026-03-05.md
     └── implementation_complete.md
@@ -51,4 +51,4 @@ docs/
 
 ---
 
-*Last updated: 2026-03-05*
+*最后更新: 2026-03-05*
