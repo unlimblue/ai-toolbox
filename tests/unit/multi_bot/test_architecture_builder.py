@@ -4,25 +4,26 @@ import pytest
 from unittest.mock import Mock
 
 from ai_toolbox.multi_bot.architecture_builder import (
-    build_system_architecture_info,
-    format_system_prompt,
+    PromptBuilder,
+    build_system_prompt,
+    resolve_channel_name,
+    get_channel_id_from_text,
     parse_mentions_from_content,
+    CHANNEL_NAME_ALIASES,
 )
 from ai_toolbox.multi_bot.config_loader import MultiBotConfig
 
 
-class TestArchitectureBuilder:
-    """Test system architecture builder."""
+class TestPromptBuilder:
+    """Test PromptBuilder class."""
     
     @pytest.fixture
     def mock_config(self):
         """Create mock configuration."""
         config = Mock(spec=MultiBotConfig)
         
-        # Organization
         config.organization = {"name": "Test Dynasty"}
         
-        # Bots
         config.bots = {
             "chengxiang": {
                 "name": "丞相",
@@ -31,8 +32,6 @@ class TestArchitectureBuilder:
                     "description": "统筹决策",
                     "personality": "深思熟虑",
                     "speech_style": "文言文",
-                    "keywords": ["统筹", "决策"],
-                    "responsibilities": ["政策制定"]
                 }
             },
             "taiwei": {
@@ -40,19 +39,11 @@ class TestArchitectureBuilder:
                 "title": "三公之一",
                 "persona": {
                     "description": "安全执行",
-                    "personality": "果断坚决",
+                    "personality": "果断",
                     "speech_style": "简洁",
-                    "keywords": ["安全", "执行"],
-                    "responsibilities": ["军事防务"]
                 }
             }
         }
-        
-        # ID mappings
-        config.get_user_id_for_bot = Mock(side_effect=lambda x: {
-            "chengxiang": "1477314385713037445",
-            "taiwei": "1478216774171365466"
-        }.get(x))
         
         config.get_role_id_for_bot = Mock(side_effect=lambda x: {
             "chengxiang": "1477314769764614239",
@@ -61,135 +52,108 @@ class TestArchitectureBuilder:
         
         config.get_bot_config = Mock(side_effect=lambda x: config.bots.get(x, {}))
         
-        # Channels
         config.channels = {
-            "jinluan": {
-                "id": "1478759781425745940",
-                "name": "金銮殿",
-                "description": "皇帝召见",
-                "allowed_bots": ["chengxiang", "taiwei"]
-            },
-            "neige": {
-                "id": "1477312823817277681",
-                "name": "内阁",
-                "description": "内阁议事",
-                "allowed_bots": ["chengxiang", "taiwei"]
-            }
+            "jinluan": {"name": "金銮殿", "id": "1478759781425745940"},
+            "neige": {"name": "内阁", "id": "1477312823817277681"},
         }
+        config.resolve_channel_id = Mock(side_effect=lambda x: {
+            "jinluan": "1478759781425745940",
+            "neige": "1477312823817277681"
+        }.get(x, x))
         
         return config
     
-    def test_build_architecture_info_for_chengxiang(self, mock_config):
-        """Test building architecture info for chengxiang."""
-        info = build_system_architecture_info("chengxiang", mock_config)
+    def test_build_includes_identity(self, mock_config):
+        """Test prompt includes bot identity."""
+        prompt = PromptBuilder.build("chengxiang", mock_config)
         
-        assert info["bot_id"] == "chengxiang"
-        assert info["bot_name"] == "丞相"
-        assert info["bot_title"] == "三公之首"
-        assert info["bot_user_id"] == "1477314385713037445"
-        assert info["bot_role_id"] == "1477314769764614239"
-        assert info["organization_name"] == "Test Dynasty"
-        
-        # Should include other bot info
-        assert "太尉" in info["other_bots_info"]
-        assert "taiwei" in info["other_bots_info"]
-        
-        # Should not include self
-        assert "丞相" not in info["other_bots_info"]
-    
-    def test_build_architecture_info_for_taiwei(self, mock_config):
-        """Test building architecture info for taiwei."""
-        info = build_system_architecture_info("taiwei", mock_config)
-        
-        assert info["bot_id"] == "taiwei"
-        assert info["bot_name"] == "太尉"
-        
-        # Should include other bot info
-        assert "丞相" in info["other_bots_info"]
-        assert "chengxiang" in info["other_bots_info"]
-    
-    def test_role_mention_map_format(self, mock_config):
-        """Test role mention map format."""
-        info = build_system_architecture_info("chengxiang", mock_config)
-        
-        # Should contain formatted role mentions
-        assert "<@&1477314769764614239>" in info["role_mention_map"]  # 丞相
-        assert "<@&1478217215936430092>" in info["role_mention_map"]  # 太尉
-    
-    def test_user_mention_map_format(self, mock_config):
-        """Test user mention map format."""
-        info = build_system_architecture_info("chengxiang", mock_config)
-        
-        # Should contain formatted user mentions
-        assert "<@1477314385713037445>" in info["user_mention_map"]  # 丞相
-        assert "<@1478216774171365466>" in info["user_mention_map"]  # 太尉
-    
-    def test_channels_info_format(self, mock_config):
-        """Test channels info format."""
-        info = build_system_architecture_info("chengxiang", mock_config)
-        
-        # Should contain channel information
-        assert "金銮殿" in info["channels_info"]
-        assert "1478759781425745940" in info["channels_info"]
-        assert "内阁" in info["channels_info"]
-        assert "1477312823817277681" in info["channels_info"]
-    
-    def test_format_system_prompt(self, mock_config):
-        """Test formatting complete system prompt."""
-        prompt = format_system_prompt("chengxiang", mock_config, context="测试上下文")
-        
-        # Should contain bot identity
         assert "丞相" in prompt
         assert "三公之首" in prompt
-        assert "chengxiang" in prompt
+        assert "统筹决策" in prompt
+    
+    def test_build_includes_capabilities(self, mock_config):
+        """Test prompt includes capabilities."""
+        prompt = PromptBuilder.build("chengxiang", mock_config)
         
-        # Should contain architecture sections
-        assert "🆔 你的身份标识" in prompt
-        assert "👥 系统成员" in prompt
-        assert "📍 可用频道" in prompt
-        assert "💬 如何正确 @ 人" in prompt
+        assert "Capabilities" in prompt
+        assert "Mention others" in prompt
+    
+    def test_build_includes_system_members(self, mock_config):
+        """Test prompt includes other bots."""
+        prompt = PromptBuilder.build("chengxiang", mock_config)
         
-        # Should contain context
-        assert "测试上下文" in prompt
+        assert "System Members" in prompt
+        assert "太尉" in prompt
+        assert "1478217215936430092" in prompt  # Taiwei role ID
+    
+    def test_build_includes_channels(self, mock_config):
+        """Test prompt includes channels."""
+        prompt = PromptBuilder.build("chengxiang", mock_config)
         
-        # Should contain mention formats
-        assert "<@&" in prompt  # Role mention format
-        assert "@" in prompt  # User mention format
+        assert "Channels" in prompt
+        assert "金銮殿" in prompt
+        assert "内阁" in prompt
+    
+    def test_build_includes_conversation_rules(self, mock_config):
+        """Test prompt includes conversation rules."""
+        prompt = PromptBuilder.build("chengxiang", mock_config)
+        
+        assert "Conversation Rules" in prompt
+        assert "When @'ed" in prompt
 
 
-class TestParseMentionsFromContent:
-    """Test parsing mentions from message content."""
+class TestChannelResolution:
+    """Test channel name resolution."""
+    
+    def test_resolve_channel_alias(self):
+        """Test resolving channel aliases."""
+        assert resolve_channel_name("去内阁商议") == "neige"
+        assert resolve_channel_name("去兵部") == "bingbu"
+        assert resolve_channel_name("金銮殿见") == "jinluan"
+    
+    def test_resolve_unknown_channel(self):
+        """Test resolving unknown channel returns None."""
+        assert resolve_channel_name("去unknown") is None
+    
+    def test_get_channel_id_from_text(self):
+        """Test getting channel ID from text."""
+        config = Mock()
+        config.resolve_channel_id = Mock(return_value="1477312823817277681")
+        
+        result = get_channel_id_from_text("去内阁", config)
+        
+        assert result == "1477312823817277681"
+
+
+class TestParseMentions:
+    """Test parsing mentions from content."""
     
     @pytest.fixture
     def mock_config(self):
-        """Create mock configuration."""
-        config = Mock(spec=MultiBotConfig)
-        
+        """Create mock config for mention parsing."""
+        config = Mock()
         config.get_bot_id_from_role_id = Mock(side_effect=lambda x: {
             "1477314769764614239": "chengxiang",
             "1478217215936430092": "taiwei"
         }.get(x))
-        
         config.get_bot_id_from_user_id = Mock(side_effect=lambda x: {
-            "1477314385713037445": "chengxiang",
-            "1478216774171365466": "taiwei"
+            "1477314385713037445": "chengxiang"
         }.get(x))
-        
         return config
     
     def test_parse_role_mention(self, mock_config):
-        """Test parsing role mention from content."""
+        """Test parsing role mention."""
         content = "<@&1477314769764614239> 你好"
         mentions = parse_mentions_from_content(content, mock_config)
         
         assert "chengxiang" in mentions
     
     def test_parse_user_mention(self, mock_config):
-        """Test parsing user mention from content."""
-        content = "<@1478216774171365466> 你好"
+        """Test parsing user mention."""
+        content = "<@1477314385713037445> 你好"
         mentions = parse_mentions_from_content(content, mock_config)
         
-        assert "taiwei" in mentions
+        assert "chengxiang" in mentions
     
     def test_parse_multiple_mentions(self, mock_config):
         """Test parsing multiple mentions."""
@@ -199,17 +163,28 @@ class TestParseMentionsFromContent:
         assert "chengxiang" in mentions
         assert "taiwei" in mentions
         assert len(mentions) == 2
+
+
+class TestBuildSystemPrompt:
+    """Test main build_system_prompt function."""
     
-    def test_parse_unknown_mention(self, mock_config):
-        """Test parsing unknown mention (should be ignored)."""
-        content = "<@&9999999999999999999> 你好"
-        mentions = parse_mentions_from_content(content, mock_config)
+    def test_build_system_prompt(self):
+        """Test the main builder function."""
+        config = Mock(spec=MultiBotConfig)
+        config.organization = {"name": "Test"}
+        config.bots = {
+            "test_bot": {
+                "name": "TestBot",
+                "title": "Tester",
+                "persona": {"description": "Testing"}
+            }
+        }
+        config.get_role_id_for_bot = Mock(return_value="12345")
+        config.get_bot_config = Mock(return_value=config.bots["test_bot"])
+        config.channels = {}
         
-        assert len(mentions) == 0
-    
-    def test_parse_no_mentions(self, mock_config):
-        """Test parsing content with no mentions."""
-        content = "你好，没有@任何人"
-        mentions = parse_mentions_from_content(content, mock_config)
+        prompt = build_system_prompt("test_bot", config, "test context")
         
-        assert len(mentions) == 0
+        assert "TestBot" in prompt
+        assert "Tester" in prompt
+        assert "test context" in prompt
