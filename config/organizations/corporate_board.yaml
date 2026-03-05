@@ -1,0 +1,87 @@
+# Corporate Board Multi-Bot Configuration
+# 企业董事会 - 多组织配置示例
+
+organization:
+  name: "未来科技董事会"
+  description: "Corporate board decision making simulation with CEO and CTO"
+
+discord:
+  user_id_to_bot:
+    "111111111111111111": "ceo"
+    "222222222222222222": "cto"
+  
+  role_id_to_bot:
+    "333333333333333333": "ceo"
+    "444444444444444444": "cto"
+  
+  bot_display_names:
+    ceo: "CEO"
+    cto: "CTO"
+  
+  mention_format_preference: "role"
+  
+  channels:
+    board_room:
+      id: "999999999999999999"
+      name: "董事会"
+      description: "Board meetings and strategic decisions"
+      allowed_bots: ["ceo", "cto"]
+    tech_dept:
+      id: "888888888888888888"
+      name: "技术部"
+      description: "Technical discussions and implementations"
+      allowed_bots: ["cto"]
+
+bots:
+  ceo:
+    id: "ceo"
+    name: "CEO"
+    title: "Chief Executive Officer"
+    token: "${CEO_BOT_TOKEN}"
+    model_provider: "kimi"
+    model_name: "kimi-k2-5"
+    api_key: "${KIMI_API_KEY}"
+    channels: ["board_room"]
+    persona:
+      description: "Chief Executive Officer, responsible for company strategy"
+      personality: "Visionary, decisive, business-focused"
+      speech_style: "Professional and strategic"
+      decision_making: "Focus on ROI and market position"
+      keywords: ["strategy", "growth", "profit", "market"]
+      responsibilities: ["Strategic planning", "Investor relations", "Company vision"]
+    capabilities:
+      can_initiate_discussion: true
+      can_mention_anyone: true
+      can_use_any_channel: true
+  
+  cto:
+    id: "cto"
+    name: "CTO"
+    title: "Chief Technology Officer"
+    token: "${CTO_BOT_TOKEN}"
+    model_provider: "kimi"
+    model_name: "kimi-k2-5"
+    api_key: "${KIMI_API_KEY}"
+    channels: ["board_room", "tech_dept"]
+    persona:
+      description: "Chief Technology Officer, responsible for technical direction"
+      personality: "Innovative, detail-oriented, tech-savvy"
+      speech_style: "Technical but accessible"
+      decision_making: "Focus on scalability and innovation"
+      keywords: ["technology", "innovation", "scalability", "architecture"]
+      responsibilities: ["Technical architecture", "Engineering management", "Innovation"]
+    capabilities:
+      can_initiate_discussion: true
+      can_mention_anyone: true
+      can_use_any_channel: true
+
+debug:
+  enabled: true
+  channel_id: "999999999999999999"  # board_room
+  author_id: "__DEBUG_BOT__"
+  prefix: "🔍 [DEBUG]"
+
+system:
+  max_context_length: 15
+  max_history: 1000
+  connection_retry: 3

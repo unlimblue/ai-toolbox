@@ -1,0 +1,121 @@
+# Cyber Dynasty Multi-Bot System Configuration
+# 赛博王朝 - 默认配置
+
+# Organization Settings
+organization:
+  name: "赛博王朝"
+  description: "AI driven cyber dynasty simulation with Emperor, Chancellor, and Grand Commandant"
+
+# Discord Settings
+discord:
+  # Bot Tokens (will be overridden by environment variables if set)
+  hub_bot_token: "${HUB_BOT_TOKEN}"
+  
+  # ID Mappings - User ID to Bot ID
+  # When a user @mentions these user IDs, they map to bot_ids
+  user_id_to_bot:
+    "1477314385713037445": "chengxiang"  # 丞相用户ID
+    "1478216774171365466": "taiwei"     # 太尉用户ID
+  
+  # ID Mappings - Role ID to Bot ID
+  # When a user @mentions these role IDs, they map to bot_ids
+  role_id_to_bot:
+    "1477314769764614239": "chengxiang"  # 丞相角色ID
+    "1478217215936430092": "taiwei"     # 太尉角色ID
+  
+  # Bot Display Names (used when mentioning by name)
+  bot_display_names:
+    chengxiang: "丞相"
+    taiwei: "太尉"
+  
+  # Mention Format Preference for bot-initiated mentions
+  # "role" = use role mention format <@&role_id>
+  # "user" = use user mention format <@user_id>
+  mention_format_preference: "role"
+  
+  # Channels Configuration
+  channels:
+    jinluan:
+      id: "1478759781425745940"
+      name: "金銮殿"
+      description: "皇帝召见群臣，商议国事"
+      allowed_bots: ["chengxiang", "taiwei"]
+    neige:
+      id: "1477312823817277681"
+      name: "内阁"
+      description: "内阁议事，商讨政策"
+      allowed_bots: ["chengxiang", "taiwei"]
+    bingbu:
+      id: "1477273291528867860"
+      name: "兵部"
+      description: "军事防务，安全事务"
+      allowed_bots: ["taiwei"]
+
+# Bot Configurations
+bots:
+  chengxiang:
+    id: "chengxiang"
+    name: "丞相"
+    title: "三公之首"
+    token: "${CHENGXIANG_BOT_TOKEN}"
+    model_provider: "kimi"
+    model_name: "kimi-k2-5"
+    api_key: "${KIMI_API_KEY}"
+    # Channels this bot can access (for initial setup)
+    channels: ["jinluan", "neige"]
+    # Persona configuration for AI behavior
+    persona:
+      description: "三公之首，统筹决策"
+      personality: "深思熟虑、顾全大局、善于协调"
+      speech_style: "文雅的文言文风格，多用'启禀陛下'、'臣以为'"
+      decision_making: "注重全局利益，平衡各方"
+      keywords: ["统筹", "决策", "协调", "大局"]
+      responsibilities: ["政策制定", "资源调配", "官员协调"]
+    # Capabilities
+    capabilities:
+      can_initiate_discussion: true
+      can_mention_anyone: true
+      can_use_any_channel: true
+  
+  taiwei:
+    id: "taiwei"
+    name: "太尉"
+    title: "三公之一"
+    token: "${TAIWEI_BOT_TOKEN}"
+    model_provider: "kimi"
+    model_name: "kimi-k2-5"
+    api_key: "${KIMI_API_KEY}"
+    channels: ["jinluan", "neige", "bingbu"]
+    persona:
+      description: "三公之一，安全执行"
+      personality: "果断坚决、执行力强、重视安全"
+      speech_style: "简洁有力，多用'遵旨'、'即刻执行'"
+      decision_making: "注重效率和结果，快速行动"
+      keywords: ["安全", "执行", "防御", "军事"]
+      responsibilities: ["军事防务", "安全事务", "执行监督"]
+    capabilities:
+      can_initiate_discussion: true
+      can_mention_anyone: true
+      can_use_any_channel: true
+
+# Emperor Configuration (for reference)
+emperor:
+  id: "1477269928720466011"
+  name: "皇帝"
+  is_human: true
+
+# Debug Settings
+debug:
+  enabled: true
+  channel_id: "1478759781425745940"  # 金銮殿
+  author_id: "__DEBUG_BOT__"
+  prefix: "🔍 [DEBUG]"
+
+# System Settings
+system:
+  # Maximum context length for each bot
+  max_context_length: 15
+  # Message history limit
+  max_history: 1000
+  # Bot connection retry attempts
+  connection_retry: 3

@@ -16,6 +16,7 @@ from .config import (
     DEBUG_AUTHOR_ID,
     DEBUG_PREFIX,
 )
+from .config_loader import MultiBotConfig, get_config, reload_config
 from .models import (
     UnifiedMessage,
     CrossChannelTask,
@@ -41,6 +42,9 @@ __all__ = [
     "DEBUG_CHANNEL_ID",
     "DEBUG_AUTHOR_ID",
     "DEBUG_PREFIX",
+    "MultiBotConfig",
+    "get_config",
+    "reload_config",
     "UnifiedMessage",
     "CrossChannelTask",
     "BotState",
