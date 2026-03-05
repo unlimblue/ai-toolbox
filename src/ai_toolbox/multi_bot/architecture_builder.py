@@ -73,12 +73,28 @@ You are {bot.get('name')} ({bot.get('title')}).
     @staticmethod
     def _system_members(my_bot_id: str, config: MultiBotConfig) -> str:
         """System members section."""
-        lines = ["# System Members\n"]
+        my_bot_config = config.get_bot_config(my_bot_id)
+        my_name = my_bot_config.get('name', my_bot_id)
+        my_role_id = config.get_role_id_for_bot(my_bot_id)
         
+        lines = ["# System Members\n"]
+        lines.append(f"## You\n")
+        lines.append(f"- **Name**: {my_name}")
+        lines.append(f"- **Bot ID**: `{my_bot_id}`")
+        lines.append(f"- **Your Role ID**: `{my_role_id}`")
+        lines.append(f"- **When someone @ you**: They will type `<@&{my_role_id}>` or you will see '@{my_name}' in Discord\n")
+        
+        lines.append("## Other Members\n")
         for bot_id, bot in config.bots.items():
             if bot_id != my_bot_id:
                 role_id = config.get_role_id_for_bot(bot_id)
-                lines.append(f"- **{bot.get('name')}**: `<@&{role_id}>` ({bot.get('title')})")
+                bot_name = bot.get('name', bot_id)
+                lines.append(f"- **{bot_name}** (`{bot_id}`)")
+                lines.append(f"  - Role ID: `{role_id}`")
+                lines.append(f"  - To @ them: Type `<@&{role_id}>` in your response")
+                lines.append(f"  - When they @ you: You will see `<@&{my_role_id}>` or '@{my_name}'")
+                lines.append(f"  - Title: {bot.get('title', '')}")
+                lines.append("")
         
         return "\n".join(lines)
     
@@ -128,32 +144,51 @@ You are {bot.get('name')} ({bot.get('title')}).
     
     @staticmethod
     def _conversation_rules() -> str:
-        """Conversation rules section."""
+        """Conversation rules section with termination guidance."""
         return """# Conversation Rules
 
-1. **When @'ed**: Always respond
-2. **Continue dialogue**: @ back to maintain conversation
-3. **End when**: 
-   - Other party says "就这样" / "已定" / conclusion words
-   - You've fully expressed your view
-   - 3-4 rounds without conclusion (then summarize)
+## When to Respond
+1. **When @'ed directly**: Always respond immediately
+2. **During active conversation**: Continue responding to your conversation partner
+3. **In cross-channel tasks**: Respond in the designated channel
+
+## When to @ Others
+1. **Continue dialogue**: If you want to continue the conversation, @ the other bot back
+2. **Ask question**: If you need input from another bot, @ them
+3. **Acknowledge**: If you want to acknowledge something, you may @ them
+
+## When to END Conversation (CRITICAL)
+You MUST end the conversation by NOT @'ing the other bot when:
+
+1. **Conclusion reached**: Both parties agree (e.g., "同意", "可行", "就这样")
+2. **Question answered**: You have fully answered their question
+3. **Task complete**: The assigned task is finished
+4. **No further input needed**: You have nothing more to add
+5. **Timeout**: 5+ rounds without meaningful progress
+
+### How to End
+Simply do NOT include any `<@&ROLE_ID>` in your response. Just reply normally without @.
 
 ## Examples
 
-**Multi-turn**:
+**Multi-turn (continue)**:
 ```
-User: @丞相 @太尉 商议
-丞相: <@&TAIWEI_ROLE>，去内阁如何？
-太尉: <@&CHENGXIANG_ROLE>，可行。细节？
-丞相: <@&TAIWEI_ROLE>，善。定论？
-太尉: <@&CHENGXIANG_ROLE>，可。
+丞相: <@&1478217215936430092>，此事如何？
+太尉: <@&1477314769764614239>，我觉得可行，但需完善细节。
+丞相: <@&1478217215936430092>，请详述。
 ```
 
-**Switch channel**:
+**End conversation (no @)**:
 ```
-User: 去内阁商议
-You: <@&TAIWEI_ROLE>，去内阁详谈。
-[Then speak in 内阁 channel]
+太尉: <@&1477314769764614239>，我已无异议，同意此方案。
+丞相: 善，那就按此执行。（NO @ - conversation ends）
+```
+
+**Another end example**:
+```
+丞相: <@&1478217215936430092>，还有补充吗？
+太尉: <@&1477314769764614239>，没有了，定了吧。
+丞相: 好，已定。（NO @ - conversation ends）
 ```"""
     
     @staticmethod

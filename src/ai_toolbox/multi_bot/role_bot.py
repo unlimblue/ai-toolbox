@@ -324,6 +324,13 @@ class RoleBot:
                     {"response": response[:50]}
                 )
                 await self.send_message(message.channel_id, response)
+                
+                # Check if conversation should end (no mentions in response)
+                has_mentions = '<@&' in response or '<@' in response
+                if not has_mentions and self.conversation_state["active"]:
+                    logger.info(f"🛑 Bot {self.bot_id} ending conversation (no mentions in response)")
+                    await self._send_debug("🛑 Ending conversation (no mentions in response)")
+                    self._end_conversation()
             else:
                 await self._send_debug("❌ No response generated")
         else:
