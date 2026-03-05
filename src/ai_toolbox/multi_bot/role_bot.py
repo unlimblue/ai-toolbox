@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import os
+import re
 from typing import List, Optional, Callable, Dict
 from datetime import datetime, timedelta
 
@@ -387,10 +388,12 @@ class RoleBot:
     
     async def handle_task(self, task: CrossChannelTask):
         """
-        Handle cross-channel task.
+        Handle cross-channel task with multi-action capability.
         
-        Args:
-            task: CrossChannelTask to handle
+        Bot can autonomously decide to:
+        1. Reply in source channel (acknowledge command)
+        2. Act in target channel (start task execution)
+        3. Do both simultaneously
         """
         self.state = BotState.DISCUSSING
         self.current_task = task
@@ -401,7 +404,7 @@ class RoleBot:
             {"task_id": task.task_id, "state": self.state.value}
         )
         
-        # Create task graph (new)
+        # Create task graph
         try:
             task_graph = self.graph_manager.create_task_graph(
                 task_id=task.task_id,
@@ -410,25 +413,16 @@ class RoleBot:
                 participants=task.target_bots
             )
             self.current_graph_id = task_graph.graph_id
-            await self._send_debug(
-                "📊 Task graph created",
-                {"graph_id": task_graph.graph_id}
-            )
         except Exception as e:
             logger.error(f"Error creating task graph: {e}")
-            await self._send_debug(f"⚠️ Task graph error: {e}")
         
         # Ensure connected
         if not self._connected:
-            logger.info(f"🔌 Bot {self.bot_id} connecting to Discord...")
-            await self._send_debug("🔌 Connecting to Discord...")
             await self.connect()
         
-        # Build task context for AI
+        # Build context for AI decision
         source_channel_name = self._get_channel_name(task.source_channel)
         target_channel_name = self._get_channel_name(task.target_channel)
-        
-        # Find other bots
         other_bots = [bid for bid in task.target_bots if bid != self.bot_id]
         other_bot_names = []
         for bid in other_bots:
@@ -440,20 +434,33 @@ class RoleBot:
             except:
                 other_bot_names.append(bid)
         
-        # Generate confirmation message using AI
-        confirm_prompt = f"""你收到了皇帝的跨频道任务指令。
+        # Generate multi-action response
+        multi_action_prompt = f"""你收到了皇帝的任务指令，需要自主决策如何行动。
 
 任务信息：
-- 当前位置：{source_channel_name}
-- 目标位置：{target_channel_name}
+- 当前位置（皇帝所在）：{source_channel_name} (ID: {task.source_channel})
+- 任务地点：{target_channel_name} (ID: {task.target_channel})
 - 任务内容：{task.instruction}
-- 协作对象：{', '.join(other_bot_names) if other_bot_names else '无'}
+- 需要协作的伙伴：{', '.join(other_bot_names) if other_bot_names else '无'}
 
-你需要：
-1. 先在当前位置（{source_channel_name}）回复皇帝，表示接受任务
-2. 然后前往目标位置（{target_channel_name}）与协作对象会合
+你的决策选项：
+1. 仅在当前位置({source_channel_name})回复皇帝
+2. 仅前往任务地点({target_channel_name})开始执行
+3. **同时在两个地方行动**（推荐）
+   - 在当前位置回复皇帝表示接受任务
+   - 立即前往任务地点开始执行并@协作伙伴
 
-请生成第一句回复（表示接受任务）："""
+请用以下格式输出你的行动计划：
+
+[ACTION: reply]
+频道：{task.source_channel}
+内容：（回复皇帝的话）
+
+[ACTION: execute]
+频道：{task.target_channel}
+内容：（在任务地点说的话，如需@伙伴请使用 <@&ROLE_ID> 格式）
+
+如果只做一个动作，省略另一个 ACTION 块。"""
         
         try:
             api_key = os.getenv(self.config.api_key_env)
@@ -466,55 +473,81 @@ class RoleBot:
                 
                 messages = [
                     ChatMessage(role="system", content=self.config.persona.system_prompt),
-                    ChatMessage(role="user", content=confirm_prompt)
+                    ChatMessage(role="user", content=multi_action_prompt)
                 ]
                 
                 response = await client.chat(messages)
-                confirm_msg = response.content.strip()
+                actions_text = response.content.strip()
                 
-                # Send confirmation to source channel
-                logger.info(f"📤 Bot {self.bot_id} sending AI-generated confirmation")
-                await self.send_message(task.source_channel, confirm_msg)
+                # Parse actions
+                actions = self._parse_actions(actions_text, task)
+                
+                # Execute all actions
+                for action in actions:
+                    channel_id = action.get('channel')
+                    content = action.get('content', '').strip()
+                    
+                    if channel_id and content:
+                        logger.info(f"📤 Bot {self.bot_id} executing {action.get('type')} to {channel_id}")
+                        await self.send_message(channel_id, content)
+                        
+                        # Small delay between multiple actions
+                        if len(actions) > 1:
+                            await asyncio.sleep(1)
         except Exception as e:
-            logger.error(f"Error generating confirmation: {e}")
-            # Fallback to simple message
+            logger.error(f"Error in multi-action task handling: {e}")
+            # Fallback: simple confirmation
             await self.send_message(
                 task.source_channel,
-                f"领旨，即刻去{target_channel_name}。"
+                f"领旨，即刻前往{target_channel_name}。"
             )
+    
+    def _parse_actions(self, text: str, task: CrossChannelTask) -> List[Dict]:
+        """Parse multi-action response from AI."""
+        actions = []
         
-        # Generate start message for target channel
-        start_prompt = f"""你已到达目标位置，需要与协作对象会合。
-
-当前情况：
-- 当前位置：{target_channel_name}
-- 来自：{source_channel_name}
-- 任务：{task.instruction}
-- 需要会合的对象：{', '.join(other_bot_names) if other_bot_names else '无'}
-
-请生成到达后的第一句话（自然、简洁，召集协作对象）："""
+        # Parse [ACTION: type] blocks
+        import re
+        action_blocks = re.findall(
+            r'\[ACTION:\s*(\w+)\](.*?)(?=\[ACTION:|$)',
+            text,
+            re.DOTALL | re.IGNORECASE
+        )
         
-        try:
-            if api_key:
-                messages = [
-                    ChatMessage(role="system", content=self.config.persona.system_prompt),
-                    ChatMessage(role="user", content=start_prompt)
-                ]
-                
-                response = await client.chat(messages)
-                start_msg = response.content.strip()
-                
-                # Send to target channel
-                logger.info(f"📤 Bot {self.bot_id} sending AI-generated start message")
-                await self.send_message(task.target_channel, start_msg)
-        except Exception as e:
-            logger.error(f"Error generating start message: {e}")
-            # Fallback
-            if other_bot_names:
-                await self.send_message(
-                    task.target_channel,
-                    f"臣已至{target_channel_name}，请{other_bot_names[0]}前来会合。"
-                )
+        for action_type, block in action_blocks:
+            action = {'type': action_type.lower().strip()}
+            
+            # Extract channel
+            channel_match = re.search(r'频道[：:]\s*(\d+)', block)
+            if channel_match:
+                action['channel'] = channel_match.group(1)
+            elif 'reply' in action_type.lower():
+                action['channel'] = task.source_channel
+            elif 'execute' in action_type.lower():
+                action['channel'] = task.target_channel
+            
+            # Extract content
+            content_match = re.search(r'内容[：:]\s*(.+?)(?=\n\[|$)', block, re.DOTALL)
+            if content_match:
+                action['content'] = content_match.group(1).strip()
+            else:
+                # Try to find any text after the header
+                lines = [l.strip() for l in block.strip().split('\n') if l.strip()]
+                if lines and '频道' not in lines[0] and '内容' not in lines[0]:
+                    action['content'] = lines[0]
+            
+            if action.get('channel') and action.get('content'):
+                actions.append(action)
+        
+        # If no structured actions found, treat entire text as single reply
+        if not actions and text.strip():
+            actions.append({
+                'type': 'reply',
+                'channel': task.source_channel,
+                'content': text.strip()
+            })
+        
+        return actions
     
     def _is_relevant(self, message: UnifiedMessage) -> bool:
         """Check if message is relevant to this bot."""
