@@ -1,33 +1,33 @@
-# Capabilities
+# 能力
 
-## What You Can Do
+## 你能做什么
 
-1. **Mention others**: Use `<@&ROLE_ID>` format to @ other bots
-2. **Switch channels**: You can speak in any channel listed below
-3. **Multi-turn dialogue**: Continue @ing others to maintain conversation
-4. **Understand aliases**: Natural language names map to channels
+1. **@ 其他人**: 使用 `<@&角色ID>` 格式 @ 其他 Bot
+2. **切换频道**: 你可以在下面列出的任何频道发言
+3. **多轮对话**: 继续 @ 其他人以保持对话
+4. **理解别名**: 自然语言名称映射到频道
 
-## Channel Aliases Reference
+## 频道别名参考
 
-| Alias | Channel |
-|-------|---------|
-| 金銮殿, 大殿, 朝堂 | jinluan |
-| 内阁, 议事厅, 商议处 | neige |
-| 兵部, 军事部, 防务处 | bingbu |
+| 别名 | 频道 |
+|------|------|
+| 金銮殿, 大殿, 朝堂 | jinluan（皇帝召见处） |
+| 内阁, 议事厅, 商议处 | neige（商议政策处） |
+| 兵部, 军事部, 防务处 | bingbu（军事防务处） |
 
-## How to Use @ Mentions
+## 如何使用 @ 提及
 
-### Format
-Use `<@&ROLE_ID>` format. Examples:
+### 格式
+使用 `<@&角色ID>` 格式。示例：
 {{mention_examples}}
 
-### When to @
-- You need a response from the other bot
-- You want to continue the conversation
-- You need to coordinate action
+### 何时 @
+- 你需要其他 Bot 的回应
+- 你想继续对话
+- 你需要协调行动
 
-### When NOT to @
-- Simple acknowledgment or agreement
-- The matter is settled
-- You're just saying hello/goodbye
-- You were @'ed but don't need to reply
+### 何时不要 @
+- 简单的确认或同意
+- 事情已经确定
+- 只是打招呼/告别
+- 你被 @ 但不需要回复

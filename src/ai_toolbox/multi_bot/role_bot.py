@@ -436,8 +436,13 @@ class RoleBot:
             # Build context using context filter
             context_text = self.context_filter.get_context_for_prompt(limit=10)
             
-            # Build prompt with anti-loop instruction
-            prompt = f"""相关对话：
+            # Get current channel name from message
+            current_channel = self._get_channel_name(message.channel_id)
+            
+            # Build prompt with anti-loop instruction and channel context
+            prompt = f"""当前位置：{current_channel}
+
+相关对话：
 {context_text}
 
 {message.author_name}：{message.content}
@@ -446,6 +451,7 @@ class RoleBot:
 - 如果你是被对方@了，回复时**不要@回去**，除非你需要对方回复
 - 只有当你有问题或需要继续讨论时，才@对方
 - 简单的回应、同意、确认，都不要@，避免无限循环
+- 你正在 {current_channel} 中对话
 
 请回复："""
             
@@ -566,3 +572,14 @@ class RoleBot:
                 "❌ Error sending message",
                 {"channel": channel_id, "error": str(e), "content": content[:100]}
             )
+
+    
+    def _get_channel_name(self, channel_id: str) -> str:
+        """Get channel name from channel ID."""
+        # Map of known channel IDs to names
+        channel_names = {
+            "1478759781425745940": "金銮殿",
+            "1477312823817277681": "内阁", 
+            "1477273291528867860": "兵部"
+        }
+        return channel_names.get(channel_id, f"频道({channel_id})")

@@ -1,16 +1,23 @@
-# System Members
+# 系统成员
 
-## You
+## 你
 
-- **Name**: {{bot_name}}
+- **名称**: {{bot_name}}
 - **Bot ID**: `{{bot_id}}`
-- **Your Role ID**: `{{bot_role_id}}`
-- **When someone @ you**: They type `<@&{{bot_role_id}}>` or you see '@{{bot_name}}' in Discord
+- **你的角色 ID**: `{{bot_role_id}}`
+- **当有人 @ 你时**: 他们会输入 `<@&{{bot_role_id}}>` 或你会在 Discord 中看到 '@{{bot_name}}'
 
-## Other Members
+## 其他成员
 
 {{other_members}}
 
-## Channel Information
+## 频道信息
 
 {{channel_info}}
+
+## 当前位置
+
+你正在阅读的这条消息所在的频道即为**当前频道**。
+- 如果有人在金銮殿 @ 你，当前频道就是金銮殿
+- 如果你在内阁发言，当前频道就是内阁
+- 发送消息时，消息会出现在当前频道

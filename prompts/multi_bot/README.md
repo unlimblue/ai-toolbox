@@ -1,15 +1,13 @@
-# 多 Bot 系统 Prompt 系统
+# 多 Bot 系统提示词
 
-**配置驱动、模块化 Prompt 系统**，适用于任何多 Bot 架构。
-
----
+**配置驱动、模块化提示词系统** - 适用于任何多 Bot 架构。
 
 ## 设计理念
 
-- **配置驱动**：所有角色定义在 `config/multi_bot.yaml` 中，不硬编码
-- **组织无关**：同一套代码适用于任何组织架构
-- **模块化**：基础模板 + 配置特定的自定义指令
-- **用户可定制**：无需修改代码即可自定义行为
+- **配置驱动**: 所有角色定义都在 `config/multi_bot.yaml` 中，非硬编码
+- **组织无关**: 同一套代码适用于任何组织结构
+- **模块化**: 基础模板 + 配置特定的自定义指令
+- **用户可定制**: 行为可自定义，无需修改代码
 
 ---
 
@@ -17,32 +15,32 @@
 
 ```
 prompts/multi_bot/
-├── base/              # 核心 Prompt 模板（组织无关）
-│   ├── identity.md    # Bot 身份（含 {{变量}}）
+├── base/              # 核心提示词模板（组织无关）
+│   ├── identity.md    # Bot 身份与 {{变量}}
 │   ├── capabilities.md # 能力和频道信息
 │   ├── rules.md       # 对话规则（防循环、终止）
-│   └── members.md     # 系统成员（含 {{变量}}）
-├── behaviors/         # 用户可定制的行为设置
+│   └── members.md     # 系统成员与 {{变量}}
+├── behaviors/         # 用户可自定义的行为设置
 │   └── default.yaml   # 响应风格、自动终止等
 └── README.md          # 本文档
-```
 
-**注意**：没有 `roles/` 目录！角色完全通过配置定义。
+注意：没有 roles/ 目录！角色完全在配置中定义。
+```
 
 ---
 
 ## 工作原理
 
-### Prompt 组合顺序
+### 提示词组装顺序
 
 ```
-1. base/identity.md         → Bot 身份（{{bot_name}}, {{persona_*}}）
+1. base/identity.md         → Bot 身份 {{bot_name}}, {{persona_*}}
 2. base/capabilities.md     → 能力和频道别名
 3. base/members.md          → 其他成员信息
 4. base/rules.md            → 对话规则
 5. config persona.custom_instructions → YAML 中的角色特定内容
 6. behaviors/default.yaml   → 用户行为设置
-7. Current Context          → 动态上下文
+7. 当前上下文              → 动态上下文
 ```
 
 ### 模板变量
@@ -51,7 +49,7 @@ prompts/multi_bot/
 
 | 变量 | 说明 |
 |------|------|
-| `{{bot_id}}` | Bot 标识（如 "chengxiang"） |
+| `{{bot_id}}` | Bot 标识符（如 "chengxiang"） |
 | `{{bot_name}}` | 显示名称（如 "丞相"） |
 | `{{bot_role_id}}` | Discord 角色 ID |
 | `{{bot_title}}` | 职位/头衔 |
@@ -111,11 +109,11 @@ discord:
 ./scripts/multi_bot.sh restart
 ```
 
-**无需修改代码！**
+**无需代码变更！**
 
 ---
 
-## 定制行为
+## 自定义行为
 
 编辑 `behaviors/default.yaml`：
 
@@ -129,9 +127,9 @@ auto_terminate: true
 # 最大对话轮数
 max_conversation_rounds: 5
 
-# 自定义全局指令
+# 添加全局指令
 custom_instructions: |
-  所有回复必须包含表情符号。
+  所有回应都必须包含表情符号。
 ```
 
 ---
@@ -140,18 +138,18 @@ custom_instructions: |
 
 将此系统用于完全不同的组织：
 
-1. **保留**：`prompts/multi_bot/base/`（通用模板）
-2. **编辑**：`config/multi_bot.yaml`（你的组织架构）
-3. **设置**：环境变量中的 Discord ID 和 Token
-4. **重启**：使用新配置启动服务
+1. **保留**: `prompts/multi_bot/base/`（通用模板）
+2. **编辑**: `config/multi_bot.yaml`（你的组织结构）
+3. **设置**: Discord ID 和令牌在环境变量中
+4. **重启**: 使用新配置启动服务
 
 基础模板适用于任何组织，因为它们使用从配置填充的 `{{变量}}`。
 
 ---
 
-## 示例：董事会 vs 赛博王朝
+## 示例：企业董事会 vs 赛博王朝
 
-### 同一代码，不同配置
+### 相同代码，不同配置
 
 **赛博王朝**（当前）：
 ```yaml
@@ -160,7 +158,7 @@ bots:
   taiwei: { name: "太尉", title: "三公之一" }
 ```
 
-**公司董事会**（未来）：
+**企业董事会**（未来）：
 ```yaml
 bots:
   ceo: { name: "CEO", title: "Chief Executive" }
@@ -168,17 +166,17 @@ bots:
   cto: { name: "CTO", title: "Chief Technology" }
 ```
 
-同一套 `base/` 模板适用于两者！只需更改配置。
+相同的 `base/` 模板适用于两者！只需更改配置。
 
 ---
 
-## 技术细节
+## 技术详情
 
-- **PromptLoader** 类在 `architecture_builder.py` 中处理组合
-- 模板替换在运行时进行
-- 配置更改无需代码部署（只需重启）
-- YAML 前置元数据在 custom_instructions 中支持
+- **PromptLoader** 类在 `architecture_builder.py` 中处理组装
+- 模板替换在运行时发生
+- 配置更改不需要代码部署（只需重启）
+- 支持 YAML 前言的 custom_instructions
 
 ---
 
-*最后更新：2026-03-05*
+*最后更新: 2026-03-05*

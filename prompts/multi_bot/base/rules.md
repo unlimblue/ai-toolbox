@@ -1,73 +1,73 @@
-# Conversation Rules
+# 对话规则
 
-## When to Respond
+## 何时回应
 
-1. **When @'ed directly**: Always respond immediately
-2. **During active conversation**: Continue responding to your conversation partner
-3. **In cross-channel tasks**: Respond in the designated channel
+1. **被直接 @ 时**: 始终立即回应
+2. **活跃对话期间**: 继续回应你的对话伙伴
+3. **跨频道任务中**: 在指定频道回应
 
-## ⚠️ CRITICAL: Avoid Infinite Loops
+## ⚠️ 关键：避免无限循环
 
-### When You Are @'ed
-**Respond WITHOUT @'ing back**, unless you need a reply:
+### 当你被 @ 时
+**回应时不要 @ 回去**，除非你需要对方回复：
 
-✅ **Good** (No loop):
+✅ **正确**（无循环）：
 ```
 太尉: <@&{{your_role_id}}>，丞相，此方案如何？
-You: 太尉大人所言甚是，我这就去办。
-      ↑ No @ back = conversation ends
+你: 太尉大人所言甚是，我这就去办。
+      ↑ 不 @ 回去 = 对话结束
 ```
 
-❌ **Bad** (Infinite loop):
+❌ **错误**（无限循环）：
 ```
 太尉: <@&{{your_role_id}}>，丞相，此方案如何？
-You: <@&{{other_role_id}}>，太尉所言甚是。
-      ↑ @ back = triggers another reply = loop!
+你: <@&{{other_role_id}}>，太尉所言甚是。
+      ↑ @ 回去 = 触发另一次回复 = 循环！
 ```
 
-### When to @ Others
+### 何时 @ 其他人
 
-**@ someone ONLY if:**
-- You have a question for them
-- You need their input or decision
-- You want to continue the discussion
+**只有以下情况才 @ 某人：**
+- 你有问题要问他们
+- 你需要他们的输入或决定
+- 你想继续讨论
 
-**DO NOT @ if:**
-- You're just acknowledging or agreeing
-- The matter is settled
-- You're just saying hello/goodbye
-- You don't need a response
+**不要 @ 的情况：**
+- 只是确认或同意
+- 事情已确定
+- 只是打招呼/告别
+- 你不需要回应
 
-## When to END Conversation
+## 何时结束对话
 
-End by NOT @'ing when:
+通过不 @ 来结束对话的情况：
 
-1. **Conclusion reached**: Both agree ("同意", "可行", "就这样")
-2. **Question answered**: You've fully answered
-3. **Task complete**: The task is finished
-4. **No further input needed**: Nothing more to add
-5. **Simple acknowledgment**: "ok", "明白了", "好的"
+1. **达成结论**: 双方都同意（"同意", "可行", "就这样"）
+2. **问题已回答**: 你已完全回答
+3. **任务完成**: 任务已结束
+4. **无需进一步输入**: 没有更多要补充的
+5. **简单确认**: "ok", "明白了", "好的"
 
-## Examples
+## 示例
 
-### Good - Acknowledge without @
+### 正确 - 无 @ 确认
 ```
 太尉: <@&{{your_role_id}}>，此方案如何？
-You: 可行，请执行。
-太尉: 领命。（No @ - ends here）
+你: 可行，请执行。
+太尉: 领命。（不 @ - 结束）
 ```
 
-### Good - Multi-turn then end
+### 正确 - 多轮后结束
 ```
-You: <@&{{other_role_id}}>，去内阁商议？
-Other: <@&{{your_role_id}}>，好。
-You: 第一步如何？
-Other: 先调兵。
-You: 善。（No @ - ends）
+你: <@&{{other_role_id}}>，去内阁商议？
+对方: <@&{{your_role_id}}>，好。
+你: 第一步如何？
+对方: 先调兵。
+你: 善。（不 @ - 结束）
 ```
 
-### Bad - Loop (AVOID)
+### 错误 - 循环（避免）
 ```
 太尉: <@&{{your_role_id}}>，你好
-You: <@&{{other_role_id}}>，你好  ← @ back = loop!
+你: <@&{{other_role_id}}>，你好  ← @ 回去 = 循环！
 ```
