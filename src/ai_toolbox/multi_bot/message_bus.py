@@ -179,6 +179,9 @@ class MessageBus:
         has_mention = "@" in original_content or "<@" in original_content
         has_action = any(k in content for k in ["去", "到", "在", "通知", "叫", "传"])
         
+        # Debug logging
+        logger.debug(f"Parse task: has_mention={has_mention}, has_action={has_action}, content={content[:50]}")
+        
         # Get channel aliases from config
         channel_aliases = {
             "金銮殿": "jinluan",
@@ -197,23 +200,30 @@ class MessageBus:
         for alias, channel_key in channel_aliases.items():
             if alias in content:
                 mentioned_channel = channel_key
+                logger.debug(f"Found channel alias: {alias} -> {channel_key}")
                 break
         
         if not (has_mention and has_action and mentioned_channel):
+            logger.debug(f"Task parsing failed: mention={has_mention}, action={has_action}, channel={mentioned_channel}")
             return None
         
         # Resolve channel ID from config
         target_channel_id = config.resolve_channel_id(mentioned_channel)
+        logger.debug(f"Resolved channel: {mentioned_channel} -> {target_channel_id}")
         
         if not target_channel_id:
+            logger.debug(f"Task parsing failed: could not resolve channel ID for {mentioned_channel}")
             return None
         
         # Don't create task if target is same as source
+        logger.debug(f"Checking: target={target_channel_id}, source={message.channel_id}")
         if target_channel_id == message.channel_id:
+            logger.debug(f"Task parsing failed: target same as source")
             return None
         
         # Collect all target bots
         target_bots = list(message.mentions) if message.mentions else []
+        logger.debug(f"Initial target bots from mentions: {target_bots}")
         
         # Also check if message content mentions other bots by name
         # This handles "@丞相 去内阁通知太尉" pattern
@@ -230,10 +240,15 @@ class MessageBus:
                             break
                     if not author_is_bot:
                         target_bots.append(bot_id)
+                        logger.debug(f"Added bot from content: {bot_id} ({bot_name})")
+        
+        logger.debug(f"Final target bots: {target_bots}")
         
         if not target_bots:
+            logger.debug(f"Task parsing failed: no target bots")
             return None
         
+        logger.info(f"✅ Created cross-channel task with bots: {target_bots}")
         return CrossChannelTask(
             task_id=str(uuid.uuid4()),
             source_channel=message.channel_id,
