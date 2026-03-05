@@ -19,6 +19,10 @@ class ContextFilter:
         self.bot_id = bot_id
         self.max_context = max_context
         self.context: List[UnifiedMessage] = []
+        # Extended timeout for conversation continuity
+        self.conversation_timeout = timedelta(minutes=10)
+        self.active_conversation = False
+        self.last_mention_time: Optional[datetime] = None
     
     def add_message(self, message: UnifiedMessage) -> bool:
         """
@@ -27,6 +31,9 @@ class ContextFilter:
         Returns:
             True if message was added, False otherwise
         """
+        # Update conversation state
+        self._update_conversation_state(message)
+        
         if self._is_relevant(message):
             self.context.append(message)
             
@@ -37,6 +44,13 @@ class ContextFilter:
             return True
         return False
     
+    def _update_conversation_state(self, message: UnifiedMessage):
+        """Track conversation state based on mentions."""
+        # If bot is mentioned, mark conversation as active
+        if self.bot_id in message.mentions:
+            self.active_conversation = True
+            self.last_mention_time = message.timestamp
+    
     def _is_relevant(self, message: UnifiedMessage) -> bool:
         """
         Determine if message is relevant to this bot.
@@ -46,6 +60,7 @@ class ContextFilter:
         2. Message is from the bot itself
         3. Message is in the same discussion thread
         4. Message is recent and related to current topic
+        5. During active conversation, related messages are relevant
         """
         # Ignore debug messages (identified by author_id or content prefix)
         if message.author_id == DEBUG_AUTHOR_ID:
@@ -54,24 +69,47 @@ class ContextFilter:
         if message.content.startswith(DEBUG_PREFIX):
             return False
         
-        # Direct mention
+        # Direct mention - always relevant
         if self.bot_id in message.mentions:
             return True
         
-        # Own message
+        # Own message - always relevant
         if message.author_id == self.bot_id:
             return True
         
-        # Recent context continuation (within last 3 messages)
+        # During active conversation, messages from partners are relevant
+        if self.active_conversation and self._is_conversation_partner(message):
+            return True
+        
+        # Recent context continuation (extended to 10 minutes during active conversation)
         if self.context:
             last_msg = self.context[-1]
             time_diff = message.timestamp - last_msg.timestamp
-            if time_diff < timedelta(minutes=5):
+            timeout = self.conversation_timeout if self.active_conversation else timedelta(minutes=5)
+            
+            if time_diff < timeout:
                 # Check if it's a reply or continuation
                 if self._is_conversation_continuation(message, last_msg):
                     return True
         
         return False
+    
+    def _is_conversation_partner(self, message: UnifiedMessage) -> bool:
+        """Check if message is from a known conversation partner."""
+        # If we have context, check if this author has been part of the conversation
+        if not self.context:
+            return False
+        
+        # Get recent authors in conversation
+        recent_authors = set()
+        for msg in self.context[-5:]:  # Check last 5 messages
+            recent_authors.add(msg.author_id)
+            # Also add anyone they mentioned
+            for mention in msg.mentions:
+                if mention != self.bot_id:
+                    recent_authors.add(mention)
+        
+        return message.author_id in recent_authors
     
     def _is_conversation_continuation(
         self,
@@ -89,8 +127,30 @@ class ContextFilter:
         if current.author_id == previous.author_id:
             return True
         
-        # Direct response to previous message (simple heuristic)
-        # In real implementation, could check reply_to field
+        # During active conversation, any message in same channel is continuation
+        if self.active_conversation:
+            return True
+        
+        return True
+    
+    def check_conversation_timeout(self) -> bool:
+        """
+        Check if conversation has timed out.
+        
+        Returns:
+            True if conversation is still active, False if timed out
+        """
+        if not self.active_conversation:
+            return False
+        
+        if self.last_mention_time is None:
+            return False
+        
+        # Check if 10 minutes have passed since last mention
+        if datetime.now() - self.last_mention_time > self.conversation_timeout:
+            self.active_conversation = False
+            return False
+        
         return True
     
     def get_context_for_prompt(self, limit: int = 10) -> str:
@@ -116,6 +176,8 @@ class ContextFilter:
     def clear(self):
         """Clear all context."""
         self.context = []
+        self.active_conversation = False
+        self.last_mention_time = None
     
     def get_stats(self) -> dict:
         """Get context statistics."""
@@ -123,7 +185,8 @@ class ContextFilter:
             "total_messages": len(self.context),
             "mentions": len([m for m in self.context if self.bot_id in m.mentions]),
             "own_messages": len([m for m in self.context if m.author_id == self.bot_id]),
-            "channels": len(set(m.channel_id for m in self.context))
+            "channels": len(set(m.channel_id for m in self.context)),
+            "active_conversation": self.active_conversation
         }
 
 

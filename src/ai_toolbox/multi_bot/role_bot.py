@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 from typing import List, Optional, Callable, Dict
+from datetime import datetime, timedelta
 
 import discord
 
@@ -25,6 +26,7 @@ class RoleBot:
     - Manages conversation context
     - Handles cross-channel tasks
     - Has system architecture awareness
+    - Tracks conversation state for multi-turn dialogue
     """
     
     def __init__(self, config: BotConfig, architecture_info: Dict = None):
@@ -48,6 +50,17 @@ class RoleBot:
         # Context management
         self.context_filter = ContextFilter(bot_id=self.bot_id, max_context=self.max_context)
         self.relevance_scorer = RelevanceScorer(bot_id=self.bot_id)
+        
+        # Conversation state tracking for multi-turn dialogue
+        self.conversation_state = {
+            "active": False,
+            "started_at": None,
+            "last_message_at": None,
+            "partners": [],  # List of bot_ids we're conversing with
+            "channel": None,
+            "message_count": 0,
+        }
+        self.conversation_timeout = timedelta(minutes=10)
         
         # Discord client (for sending messages)
         self._client: Optional[discord.Client] = None
@@ -78,6 +91,104 @@ class RoleBot:
                 await self.debug_sender(f"[{self.bot_id}] {content}", data)
             except Exception as e:
                 logger.error(f"Failed to send debug message: {e}")
+    
+    # ==================== Conversation State Management ====================
+    
+    def _update_conversation_state(self, message: UnifiedMessage):
+        """
+        Update conversation state based on incoming message.
+        
+        Tracks:
+        - Whether we're in an active conversation
+        - Who we're talking to
+        - When the conversation started/last had activity
+        """
+        now = datetime.now()
+        
+        # If bot is mentioned, activate or continue conversation
+        if self.bot_id in message.mentions:
+            self.conversation_state["active"] = True
+            self.conversation_state["last_message_at"] = now
+            self.conversation_state["channel"] = message.channel_id
+            
+            # Record conversation start time if not set
+            if self.conversation_state["started_at"] is None:
+                self.conversation_state["started_at"] = now
+            
+            # Track conversation partners
+            for mention in message.mentions:
+                if mention != self.bot_id and mention not in self.conversation_state["partners"]:
+                    self.conversation_state["partners"].append(mention)
+            
+            # Also track the author if they're a bot
+            config = get_config()
+            if message.author_id in config.discord_config.get("user_id_to_bot", {}).values():
+                author_bot_id = None
+                for uid, bid in config.discord_config["user_id_to_bot"].items():
+                    if bid == message.author_id:
+                        author_bot_id = bid
+                        break
+                if author_bot_id and author_bot_id not in self.conversation_state["partners"]:
+                    self.conversation_state["partners"].append(author_bot_id)
+        
+        # Check if conversation has timed out
+        self._check_conversation_timeout()
+    
+    def _check_conversation_timeout(self) -> bool:
+        """
+        Check if conversation has timed out.
+        
+        Returns:
+            True if conversation is still active, False if timed out
+        """
+        if not self.conversation_state["active"]:
+            return False
+        
+        last_activity = self.conversation_state.get("last_message_at")
+        if last_activity is None:
+            return False
+        
+        if datetime.now() - last_activity > self.conversation_timeout:
+            # Conversation timed out
+            self._end_conversation()
+            return False
+        
+        return True
+    
+    def _end_conversation(self):
+        """End the current conversation."""
+        logger.info(f"Bot {self.bot_id} ending conversation (timeout or completion)")
+        self.conversation_state["active"] = False
+        self.conversation_state["partners"] = []
+        self.conversation_state["message_count"] = 0
+        # Keep started_at for history, clear channel
+        self.conversation_state["channel"] = None
+    
+    def _increment_message_count(self):
+        """Increment conversation message count."""
+        self.conversation_state["message_count"] = self.conversation_state.get("message_count", 0) + 1
+    
+    def _is_in_active_conversation(self) -> bool:
+        """Check if bot is currently in an active conversation."""
+        if not self.conversation_state["active"]:
+            return False
+        return self._check_conversation_timeout()
+    
+    def _is_conversation_partner(self, author_id: str) -> bool:
+        """Check if author is a known conversation partner."""
+        if not self.conversation_state["partners"]:
+            return False
+        
+        # Check if author_id matches any partner's user_id
+        config = get_config()
+        for partner_id in self.conversation_state["partners"]:
+            partner_user_id = config.get_user_id_for_bot(partner_id)
+            if partner_user_id == author_id:
+                return True
+        
+        return False
+    
+    # ==================== Mention Formatting ====================
     
     def format_mention(self, target_bot_id: str) -> str:
         """
@@ -267,14 +378,32 @@ class RoleBot:
         return self.context_filter._is_relevant(message)
     
     def _should_respond(self, message: UnifiedMessage) -> bool:
-        """Determine if bot should respond to message."""
+        """
+        Determine if bot should respond to message.
+        
+        Extended to support multi-turn conversation:
+        - Always respond when mentioned
+        - Continue responding during active conversation
+        - Stop when conversation times out or completes
+        """
+        # Update conversation state first
+        self._update_conversation_state(message)
+        
         # Don't respond to own messages
         if message.author_id == self.bot_id:
             return False
         
-        # Respond if mentioned
+        # Always respond if mentioned
         if self.bot_id in message.mentions:
+            self._increment_message_count()
             return True
+        
+        # During active conversation, continue responding to partners
+        if self._is_in_active_conversation():
+            # Check if message is from a conversation partner
+            if self._is_conversation_partner(message.author_id):
+                self._increment_message_count()
+                return True
         
         return False
     
