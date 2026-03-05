@@ -1,0 +1,79 @@
+2026-03-05 06:30:40,647 - __main__ - INFO - Loaded environment from /root/.openclaw/secrets/cyber_dynasty_tokens.env
+2026-03-05 06:30:40,653 - __main__ - INFO - Loaded configuration from config/multi_bot.yaml
+2026-03-05 06:30:40,653 - __main__ - INFO - Organization: 赛博王朝
+2026-03-05 06:30:40,653 - __main__ - INFO - All required environment variables found
+2026-03-05 06:30:40,653 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: chengxiang
+2026-03-05 06:30:40,653 - __main__ - INFO - Created and registered bot with architecture awareness: chengxiang
+2026-03-05 06:30:40,653 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: taiwei
+2026-03-05 06:30:40,653 - __main__ - INFO - Created and registered bot with architecture awareness: taiwei
+2026-03-05 06:30:40,654 - discord.client - WARNING - PyNaCl is not installed, voice will NOT be supported
+2026-03-05 06:30:40,654 - discord.client - WARNING - davey is not installed, voice will NOT be supported
+2026-03-05 06:30:40,654 - __main__ - INFO - Debug mode enabled
+2026-03-05 06:30:40,654 - __main__ - INFO - Connecting all bots...
+2026-03-05 06:30:40,654 - __main__ - INFO - Started connection task for bot: chengxiang
+2026-03-05 06:30:40,654 - __main__ - INFO - Started connection task for bot: taiwei
+2026-03-05 06:30:40,654 - __main__ - INFO - Waiting for bots to connect...
+2026-03-05 06:30:40,654 - discord.client - INFO - logging in using static token
+2026-03-05 06:30:40,656 - discord.client - INFO - logging in using static token
+2026-03-05 06:30:41,494 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: 8f7a6124f30c97751ddd6e15573f4c39).
+2026-03-05 06:30:41,706 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: b394128a7e5f3a930bd7fa15e35d644c).
+2026-03-05 06:30:43,518 - ai_toolbox.multi_bot.role_bot - INFO - Bot taiwei logged in as 太尉#8473
+2026-03-05 06:30:43,655 - __main__ - INFO - Connected bots: 2/2
+2026-03-05 06:30:43,655 - __main__ - INFO - Starting 赛博王朝 System...
+2026-03-05 06:30:43,655 - ai_toolbox.multi_bot.hub_listener - INFO - Starting Hub Listener...
+2026-03-05 06:30:43,655 - discord.client - INFO - logging in using static token
+2026-03-05 06:30:43,708 - ai_toolbox.multi_bot.role_bot - INFO - Bot chengxiang logged in as 丞相#9289
+2026-03-05 06:30:44,454 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: b31e4c03ee9675a13bde96612e5ee208).
+2026-03-05 06:30:46,457 - ai_toolbox.multi_bot.hub_listener - INFO - Hub Bot logged in as 赛博王朝Hub#5263
+2026-03-05 06:30:46,458 - ai_toolbox.multi_bot.hub_listener - INFO - Monitoring 1 guild(s)
+2026-03-05 06:30:46,665 - ai_toolbox.multi_bot.hub_listener - INFO -   - 赛博王朝 (1477272575406112832)
+2026-03-05 06:30:46,665 - ai_toolbox.multi_bot.hub_listener - INFO -     Channels: 兵部, 内阁, 金銮殿
+2026-03-05 06:58:47,801 - discord.gateway - INFO - Shard ID None has successfully RESUMED session b31e4c03ee9675a13bde96612e5ee208.
+2026-03-05 07:24:52,436 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 开始测试...
+2026-03-05 07:24:52,438 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 07:27:23,495 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #金銮殿: <@1477314385713037445> 回复自己的身份...
+2026-03-05 07:27:23,495 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 07:27:35,986 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x784ed9babc20>
+2026-03-05 07:27:35,986 - asyncio - ERROR - Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x784ed8904b30>, 439905.686212727)])']
+connector: <aiohttp.connector.TCPConnector object at 0x784ed9baba40>
+2026-03-05 07:27:36,520 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1478759781425745940: 启禀陛下，臣乃赛博王朝之丞相，位居三公之首。
+
+**臣之身份...
+2026-03-05 07:28:07,112 - discord.gateway - INFO - Shard ID None has successfully RESUMED session 8f7a6124f30c97751ddd6e15573f4c39.
+2026-03-05 07:28:34,292 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #金銮殿: <@1477314385713037445> <@&1478217215936430092> 在此相...
+2026-03-05 07:28:34,293 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 07:28:45,981 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x784ed9b7b830>
+2026-03-05 07:28:45,982 - asyncio - ERROR - Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x784ed9b67ad0>, 439975.681612067)])']
+connector: <aiohttp.connector.TCPConnector object at 0x784eda5597c0>
+2026-03-05 07:28:46,443 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1478759781425745940: <@&1478217215936430092>，太尉大人安好...
+2026-03-05 07:28:54,561 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x784ed9ba23c0>
+2026-03-05 07:28:54,562 - asyncio - ERROR - Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x784ed89048f0>, 439984.261827634)])']
+connector: <aiohttp.connector.TCPConnector object at 0x784ed9ba3980>
+2026-03-05 07:28:55,468 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot taiwei sent message to channel 1478759781425745940: <@&1477314769764614239>，太尉在此。身...
+2026-03-05 07:29:45,246 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #金銮殿: <@1477314385713037445> 叫上太尉，去内阁相互问候，并回禀...
+2026-03-05 07:29:45,246 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 07:29:45,447 - ai_toolbox.multi_bot.message_bus - INFO - 🎯 Created cross-channel task: b4d10312-7370-4a8d-a01d-0b99cf776886
+2026-03-05 07:29:46,050 - ai_toolbox.multi_bot.message_bus - INFO - 📋 Notifying bot chengxiang of task
+2026-03-05 07:29:46,294 - ai_toolbox.multi_bot.role_bot - INFO - 🤖 Bot chengxiang handling task: b4d10312-7370-4a8d-a01d-0b99cf776886
+2026-03-05 07:29:46,468 - ai_toolbox.multi_bot.role_bot - INFO - 📤 Bot chengxiang sending confirmation to source channel 1478759781425745940
+2026-03-05 07:29:51,408 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1478759781425745940: 领旨，即刻去内阁商议。...
+2026-03-05 07:29:51,709 - ai_toolbox.multi_bot.role_bot - INFO - 📤 Bot chengxiang sending start message to target channel 1477312823817277681
+2026-03-05 07:29:52,273 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1477312823817277681: 奉陛下旨意，来此商议：<@14773143857130374...
+2026-03-05 07:30:03,968 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x784ed9bab4d0>
+2026-03-05 07:30:03,968 - asyncio - ERROR - Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x784ed89051f0>, 440053.668374712)])']
+connector: <aiohttp.connector.TCPConnector object at 0x784ed9babe30>
+2026-03-05 07:30:04,459 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1478759781425745940: <@&1478217215936430092>，太尉大人，请...
+2026-03-05 07:32:38,807 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 发现两个问题：
+1. bot之间的相互at不能持续下去...
+2026-03-05 07:32:38,808 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 07:33:07,259 - discord.gateway - INFO - Shard ID None has successfully RESUMED session b394128a7e5f3a930bd7fa15e35d644c.
+2026-03-05 07:39:47,236 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 方案需上传github...
+2026-03-05 07:39:47,236 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
