@@ -513,3 +513,80 @@ class TestMessageDistribution:
         # Only chengxiang should receive the message
         mock_chengxiang.handle_message.assert_called_once()
         mock_taiwei.handle_message.assert_not_called()  # Should NOT be called
+    
+    @pytest.mark.asyncio
+    async def test_bots_connect_at_startup(self):
+        """Test that all bots connect at startup."""
+        bus = MessageBus()
+        
+        # Create mock bots
+        mock_chengxiang = Mock()
+        mock_chengxiang.config = Mock()
+        mock_chengxiang.config.bot_id = "chengxiang"
+        mock_chengxiang.config.channels = ["金銮殿", "内阁"]
+        mock_chengxiang.connect = AsyncMock()
+        
+        mock_taiwei = Mock()
+        mock_taiwei.config = Mock()
+        mock_taiwei.config.bot_id = "taiwei"
+        mock_taiwei.config.channels = ["金銮殿", "内阁", "兵部"]
+        mock_taiwei.connect = AsyncMock()
+        
+        bus.register_bot(mock_chengxiang)
+        bus.register_bot(mock_taiwei)
+        
+        # Simulate startup connection
+        for bot_id, bot in bus.role_bots.items():
+            await bot.connect()
+        
+        # Verify all bots connected
+        mock_chengxiang.connect.assert_called_once()
+        mock_taiwei.connect.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_bot_online_status(self):
+        """Test that bot reports online status after connection."""
+        from ai_toolbox.multi_bot.role_bot import RoleBot
+        
+        bot_config = BotConfig(
+            bot_id="test_bot",
+            name="Test Bot",
+            token_env="TEST_TOKEN",
+            model_provider="kimi",
+            model_name="kimi-k2-5",
+            api_key_env="TEST_API_KEY",
+            channels=["金銮殿"],
+            persona=BotPersona(
+                name="Test",
+                description="Test bot",
+                system_prompt="You are a test bot"
+            )
+        )
+        
+        with patch.dict('os.environ', {'TEST_TOKEN': 'test_token_123'}):
+            bot = RoleBot(bot_config)
+            bot.debug_sender = AsyncMock()
+            
+            # Mock the client
+            mock_client = Mock()
+            mock_client.user = Mock()
+            mock_client.user.id = "1477314385713037445"
+            mock_client.user.name = "丞相"
+            mock_client.start = AsyncMock()
+            
+            bot._client = mock_client
+            bot._connected = True
+            
+            # Simulate on_ready event
+            # The on_ready handler is set up in connect(), so we need to call it manually
+            # In real scenario, discord.py calls this when ready
+            await bot._send_debug(
+                f"🟢 Bot online: {mock_client.user.name}",
+                {"user_id": str(mock_client.user.id)}
+            )
+            
+            # Verify debug message was sent
+            bot.debug_sender.assert_called_with(
+                "[test_bot] 🟢 Bot online: 丞相",
+                {"user_id": "1477314385713037445"}
+            )

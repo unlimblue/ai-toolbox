@@ -73,6 +73,26 @@ async def main():
     for bot in bus.role_bots.values():
         bot.set_debug_sender(hub.send_debug_message)
     
+    # Connect all bots at startup
+    logger.info("Connecting all bots...")
+    bot_tasks = []
+    for bot_id, bot in bus.role_bots.items():
+        try:
+            # Create task for each bot connection
+            task = asyncio.create_task(bot.connect())
+            bot_tasks.append((bot_id, task))
+            logger.info(f"Started connection task for bot: {bot_id}")
+        except Exception as e:
+            logger.error(f"Failed to start connection for bot {bot_id}: {e}")
+    
+    # Wait a bit for bots to connect
+    logger.info("Waiting for bots to connect...")
+    await asyncio.sleep(3)
+    
+    # Check connection status
+    connected_count = sum(1 for bot in bus.role_bots.values() if bot._connected)
+    logger.info(f"Connected bots: {connected_count}/{len(bus.role_bots)}")
+    
     # Start system
     logger.info("Starting Cyber Dynasty Multi-Bot System...")
     
@@ -85,6 +105,16 @@ async def main():
     finally:
         # Cleanup
         logger.info("Shutting down...")
+        
+        # Cancel bot tasks
+        for bot_id, task in bot_tasks:
+            if not task.done():
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+        
         await hub.stop()
         for bot in bus.role_bots.values():
             await bot.disconnect()

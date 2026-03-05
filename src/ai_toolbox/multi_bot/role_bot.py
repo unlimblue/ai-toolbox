@@ -67,7 +67,10 @@ class RoleBot:
                 logger.error(f"Failed to send debug message: {e}")
     
     async def connect(self):
-        """Connect to Discord (for sending messages)."""
+        """
+        Connect to Discord and keep connection alive.
+        This method blocks until the client is closed.
+        """
         if self._connected:
             return
         
@@ -75,9 +78,25 @@ class RoleBot:
             raise ValueError(f"No token available for bot {self.bot_id}")
         
         self._client = discord.Client(intents=discord.Intents.default())
-        await self._client.login(self.token)
+        
+        # Setup on_ready event
+        @self._client.event
+        async def on_ready():
+            logger.info(f"Bot {self.bot_id} logged in as {self._client.user}")
+            await self._send_debug(
+                f"🟢 Bot online: {self._client.user}",
+                {"user_id": str(self._client.user.id)}
+            )
+        
         self._connected = True
-        logger.info(f"Bot {self.bot_id} connected to Discord")
+        
+        # Start the client (this blocks until disconnect)
+        try:
+            await self._client.start(self.token)
+        except Exception as e:
+            self._connected = False
+            logger.error(f"Bot {self.bot_id} connection error: {e}")
+            raise
     
     async def disconnect(self):
         """Disconnect from Discord."""
