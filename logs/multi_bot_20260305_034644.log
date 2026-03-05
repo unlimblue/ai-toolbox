@@ -14,3 +14,4 @@
 2026-03-05 03:46:47,649 - ai_toolbox.multi_bot.hub_listener - INFO - Monitoring 1 guild(s)
 2026-03-05 03:46:47,649 - ai_toolbox.multi_bot.hub_listener - INFO -   - 赛博王朝 (1477272575406112832)
 2026-03-05 03:46:47,649 - ai_toolbox.multi_bot.hub_listener - INFO -     Channels: 兵部, 内阁, 金銮殿
+2026-03-05 03:55:27,735 - ai_toolbox.multi_bot.message_bus - INFO - Created cross-channel task: 48adb290-18d8-4ac8-930f-8777c9316fe0

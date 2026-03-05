@@ -372,8 +372,11 @@ class TestRoleBot:
             instruction="Test task"
         )
         
-        with patch.object(role_bot, 'send_message', new=AsyncMock()):
-            await role_bot.handle_task(task)
+        # Mock Discord connection to avoid actual login
+        with patch.object(role_bot, 'connect', new=AsyncMock()):
+            with patch.object(role_bot, '_client'):
+                with patch.object(role_bot, 'send_message', new=AsyncMock()):
+                    await role_bot.handle_task(task)
         
         assert role_bot.state == BotState.DISCUSSING
         assert role_bot.current_task == task

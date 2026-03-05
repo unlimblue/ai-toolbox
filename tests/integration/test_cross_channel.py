@@ -14,7 +14,7 @@ from ai_toolbox.multi_bot.models import (
 )
 from ai_toolbox.multi_bot.message_bus import MessageBus
 from ai_toolbox.multi_bot.role_bot import RoleBot
-from ai_toolbox.multi_bot.config import DYNASTY_CONFIG
+from ai_toolbox.multi_bot.config import DYNASTY_CONFIG, DISCORD_ID_TO_BOT_ID
 
 
 class TestCrossChannelCoordination:
@@ -54,7 +54,7 @@ class TestCrossChannelCoordination:
         message_bus.register_bot(mock_chengxiang)
         message_bus.register_bot(mock_taiwei)
         
-        # Emperor sends cross-channel instruction
+        # Emperor sends cross-channel instruction (using Discord IDs for mentions)
         msg = UnifiedMessage(
             id="1",
             author_id="1477269928720466011",
@@ -62,7 +62,7 @@ class TestCrossChannelCoordination:
             content="@丞相 @太尉，去内阁商议边防方案，回禀结果",
             channel_id="1478759781425745940",  # 金銮殿
             timestamp=datetime.now(),
-            mentions=["chengxiang", "taiwei"]
+            mentions=["chengxiang", "taiwei"]  # Already converted to bot_id
         )
         
         await message_bus.publish(msg)
@@ -162,8 +162,11 @@ class TestBotStateMachine:
             instruction="Test task"
         )
         
-        with patch.object(role_bot, 'send_message', new=AsyncMock()):
-            await role_bot.handle_task(task)
+        # Mock the Discord connection
+        with patch.object(role_bot, 'connect', new=AsyncMock()):
+            with patch.object(role_bot, '_client'):
+                with patch.object(role_bot, 'send_message', new=AsyncMock()):
+                    await role_bot.handle_task(task)
         
         assert role_bot.state == BotState.DISCUSSING
         assert role_bot.current_task == task
@@ -180,8 +183,11 @@ class TestBotStateMachine:
             instruction="Test task"
         )
         
-        with patch.object(role_bot, 'send_message', new=AsyncMock()):
-            await role_bot.handle_task(task)
+        # Mock Discord connection
+        with patch.object(role_bot, 'connect', new=AsyncMock()):
+            with patch.object(role_bot, '_client'):
+                with patch.object(role_bot, 'send_message', new=AsyncMock()):
+                    await role_bot.handle_task(task)
         
         assert role_bot.state == BotState.DISCUSSING
         

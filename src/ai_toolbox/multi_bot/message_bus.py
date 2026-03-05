@@ -81,6 +81,8 @@ class MessageBus:
         Args:
             message: UnifiedMessage to publish
         """
+        logger.info(f"📤 Publishing message from {message.author_name} to bus")
+        
         # Store in history
         self.message_history.append(message)
         if len(self.message_history) > self.max_history:
@@ -100,12 +102,13 @@ class MessageBus:
         task = self._parse_cross_channel_task(message)
         if task:
             self.active_tasks[task.task_id] = task
-            logger.info(f"Created cross-channel task: {task.task_id}")
+            logger.info(f"🎯 Created cross-channel task: {task.task_id}")
             
             # Notify target bots
             for bot_id in task.target_bots:
                 if bot_id in self.role_bots:
                     try:
+                        logger.info(f"📋 Notifying bot {bot_id} of task")
                         await self.role_bots[bot_id].handle_task(task)
                     except Exception as e:
                         logger.error(f"Error notifying bot {bot_id} of task: {e}")

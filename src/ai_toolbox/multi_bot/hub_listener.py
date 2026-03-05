@@ -7,6 +7,7 @@ from typing import Callable, Optional
 import discord
 
 from .models import UnifiedMessage
+from .config import DISCORD_ID_TO_BOT_ID
 
 logger = logging.getLogger(__name__)
 
@@ -65,10 +66,10 @@ class HubListener:
                 return
             
             try:
-                logger.debug(f"Received message from {message.author.name} in #{message.channel.name}")
+                logger.info(f"📨 Received message from {message.author.name} in #{message.channel.name}: {message.content[:50]}...")
                 await self.on_message_callback(message)
             except Exception as e:
-                logger.error(f"Error processing message: {e}")
+                logger.error(f"❌ Error processing message: {e}")
                 if self.on_error_callback:
                     await self.on_error_callback(e)
         
@@ -117,12 +118,15 @@ def discord_message_to_unified(message: discord.Message) -> UnifiedMessage:
     Returns:
         UnifiedMessage
     """
-    # Extract mentions (bot mentions only)
+    # Extract mentions (convert Discord ID to bot_id)
     mentions = []
     for mention in message.mentions:
-        # Check if mention is a bot (simplified logic)
-        if mention.bot:
-            mentions.append(str(mention.id))
+        discord_id = str(mention.id)
+        if discord_id in DISCORD_ID_TO_BOT_ID:
+            mentions.append(DISCORD_ID_TO_BOT_ID[discord_id])
+        elif mention.bot:
+            # Fallback: use Discord ID directly if bot but not in mapping
+            mentions.append(discord_id)
     
     # Also check role mentions if needed
     # for role in message.role_mentions:

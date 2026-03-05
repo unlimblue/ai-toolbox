@@ -103,15 +103,22 @@ class RoleBot:
         self.state = BotState.DISCUSSING
         self.current_task = task
         
-        logger.info(f"Bot {self.bot_id} handling task: {task.task_id}")
+        logger.info(f"🤖 Bot {self.bot_id} handling task: {task.task_id}")
+        
+        # Ensure connected
+        if not self._connected:
+            logger.info(f"🔌 Bot {self.bot_id} connecting to Discord...")
+            await self.connect()
         
         # Confirm in source channel
+        logger.info(f"📤 Bot {self.bot_id} sending confirmation to source channel {task.source_channel}")
         await self.send_message(
             task.source_channel,
             "领旨，即刻去内阁商议。"
         )
         
         # Start in target channel
+        logger.info(f"📤 Bot {self.bot_id} sending start message to target channel {task.target_channel}")
         await self.send_message(
             task.target_channel,
             f"奉陛下旨意，来此商议：{task.instruction}"
@@ -240,14 +247,15 @@ class RoleBot:
             content: Message content
         """
         if not self._connected:
+            logger.info(f"🔌 Bot {self.bot_id} not connected, connecting...")
             await self.connect()
         
         try:
             channel = self._client.get_channel(int(channel_id))
             if channel:
                 await channel.send(content)
-                logger.debug(f"Bot {self.bot_id} sent message to {channel_id}")
+                logger.info(f"✅ Bot {self.bot_id} sent message to channel {channel_id}: {content[:30]}...")
             else:
-                logger.warning(f"Channel not found: {channel_id}")
+                logger.error(f"❌ Bot {self.bot_id}: Channel not found: {channel_id}")
         except Exception as e:
-            logger.error(f"Error sending message: {e}")
+            logger.error(f"❌ Bot {self.bot_id} error sending message: {e}")
