@@ -35,6 +35,19 @@ class MessageBus:
         self.active_tasks: Dict[str, CrossChannelTask] = {}
         self._subscribers: List[Callable] = []
         self.max_history = 1000
+        self.debug_sender: Optional[Callable] = None  # Callback to send debug messages
+    
+    def set_debug_sender(self, sender: Callable):
+        """Set debug message sender callback."""
+        self.debug_sender = sender
+    
+    async def _send_debug(self, content: str, data: dict = None):
+        """Send debug message if debug sender is available."""
+        if self.debug_sender:
+            try:
+                await self.debug_sender(content, data)
+            except Exception as e:
+                logger.error(f"Failed to send debug message: {e}")
     
     def register_bot(self, bot: 'RoleBot'):
         """
@@ -83,6 +96,18 @@ class MessageBus:
         """
         logger.info(f"📤 Publishing message from {message.author_name} to bus")
         
+        # Debug: Log publishing
+        await self._send_debug(
+            "📤 Publishing Message",
+            {
+                "id": message.id,
+                "author": message.author_name,
+                "content": message.content[:100],
+                "channel": message.channel_id,
+                "mentions": message.mentions
+            }
+        )
+        
         # Store in history
         self.message_history.append(message)
         if len(self.message_history) > self.max_history:
@@ -104,14 +129,34 @@ class MessageBus:
             self.active_tasks[task.task_id] = task
             logger.info(f"🎯 Created cross-channel task: {task.task_id}")
             
+            # Debug: Log task creation
+            await self._send_debug(
+                "🎯 Cross-Channel Task Created",
+                {
+                    "task_id": task.task_id,
+                    "source": task.source_channel,
+                    "target": task.target_channel,
+                    "target_bots": task.target_bots,
+                    "instruction": task.instruction[:100]
+                }
+            )
+            
             # Notify target bots
             for bot_id in task.target_bots:
                 if bot_id in self.role_bots:
                     try:
                         logger.info(f"📋 Notifying bot {bot_id} of task")
+                        await self._send_debug(
+                            f"📋 Notifying Bot: {bot_id}",
+                            {"task_id": task.task_id}
+                        )
                         await self.role_bots[bot_id].handle_task(task)
                     except Exception as e:
                         logger.error(f"Error notifying bot {bot_id} of task: {e}")
+                        await self._send_debug(
+                            f"❌ Failed to notify bot {bot_id}",
+                            {"error": str(e)}
+                        )
         
         # Distribute to relevant bots
         await self._distribute_message(message)
@@ -167,15 +212,30 @@ class MessageBus:
         # Also include mentioned bots that might not be in channel
         target_bots = set(channel_bots + message.mentions)
         
+        # Debug: Log distribution
+        await self._send_debug(
+            f"📨 Distributing to {len(target_bots)} bots",
+            {"bots": list(target_bots)}
+        )
+        
         for bot_id in target_bots:
             if bot_id not in self.role_bots:
                 continue
             
             if self._should_deliver(bot_id, message):
                 try:
+                    # Debug: Log delivery
+                    await self._send_debug(
+                        f"➡️ Delivering to {bot_id}",
+                        {"message_id": message.id}
+                    )
                     await self.role_bots[bot_id].handle_message(message)
                 except Exception as e:
                     logger.error(f"Error delivering message to bot {bot_id}: {e}")
+                    await self._send_debug(
+                        f"❌ Failed to deliver to {bot_id}",
+                        {"error": str(e)}
+                    )
     
     def _should_deliver(self, bot_id: str, message: UnifiedMessage) -> bool:
         """Determine if message should be delivered to bot."""

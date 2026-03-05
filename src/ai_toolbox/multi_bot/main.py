@@ -68,6 +68,11 @@ async def main():
         on_message=on_discord_message
     )
     
+    # Connect debug sender after hub is initialized
+    bus.set_debug_sender(hub.send_debug_message)
+    for bot in bus.role_bots.values():
+        bot.set_debug_sender(hub.send_debug_message)
+    
     # Start system
     logger.info("Starting Cyber Dynasty Multi-Bot System...")
     

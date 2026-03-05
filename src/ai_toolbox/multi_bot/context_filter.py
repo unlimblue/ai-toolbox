@@ -4,6 +4,7 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 
 from .models import UnifiedMessage, BotState
+from .config import DEBUG_AUTHOR_ID, DEBUG_PREFIX
 
 
 class ContextFilter:
@@ -46,6 +47,13 @@ class ContextFilter:
         3. Message is in the same discussion thread
         4. Message is recent and related to current topic
         """
+        # Ignore debug messages (identified by author_id or content prefix)
+        if message.author_id == DEBUG_AUTHOR_ID:
+            return False
+        
+        if message.content.startswith(DEBUG_PREFIX):
+            return False
+        
         # Direct mention
         if self.bot_id in message.mentions:
             return True

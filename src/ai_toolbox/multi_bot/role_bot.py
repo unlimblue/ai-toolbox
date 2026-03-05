@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import os
-from typing import List, Optional
+from typing import List, Optional, Callable
 
 import discord
 
@@ -46,10 +46,25 @@ class RoleBot:
         self._client: Optional[discord.Client] = None
         self._connected = False
         
+        # Debug sender
+        self.debug_sender: Optional[Callable] = None
+        
         # Get token from environment
         self.token = os.getenv(config.token_env)
         if not self.token:
             logger.warning(f"Token not found for bot {config.bot_id}: {config.token_env}")
+    
+    def set_debug_sender(self, sender: Callable):
+        """Set debug message sender callback."""
+        self.debug_sender = sender
+    
+    async def _send_debug(self, content: str, data: dict = None):
+        """Send debug message."""
+        if self.debug_sender:
+            try:
+                await self.debug_sender(f"[{self.bot_id}] {content}", data)
+            except Exception as e:
+                logger.error(f"Failed to send debug message: {e}")
     
     async def connect(self):
         """Connect to Discord (for sending messages)."""
@@ -104,14 +119,23 @@ class RoleBot:
         self.current_task = task
         
         logger.info(f"🤖 Bot {self.bot_id} handling task: {task.task_id}")
+        await self._send_debug(
+            "🤖 Handling Task",
+            {"task_id": task.task_id, "state": self.state.value}
+        )
         
         # Ensure connected
         if not self._connected:
             logger.info(f"🔌 Bot {self.bot_id} connecting to Discord...")
+            await self._send_debug("🔌 Connecting to Discord...")
             await self.connect()
         
         # Confirm in source channel
         logger.info(f"📤 Bot {self.bot_id} sending confirmation to source channel {task.source_channel}")
+        await self._send_debug(
+            "📤 Sending confirmation to source channel",
+            {"channel": task.source_channel}
+        )
         await self.send_message(
             task.source_channel,
             "领旨，即刻去内阁商议。"
@@ -119,6 +143,10 @@ class RoleBot:
         
         # Start in target channel
         logger.info(f"📤 Bot {self.bot_id} sending start message to target channel {task.target_channel}")
+        await self._send_debug(
+            "📤 Sending start message to target channel",
+            {"channel": task.target_channel}
+        )
         await self.send_message(
             task.target_channel,
             f"奉陛下旨意，来此商议：{task.instruction}"
@@ -248,6 +276,7 @@ class RoleBot:
         """
         if not self._connected:
             logger.info(f"🔌 Bot {self.bot_id} not connected, connecting...")
+            await self._send_debug("🔌 Not connected, connecting...")
             await self.connect()
         
         try:
@@ -255,7 +284,19 @@ class RoleBot:
             if channel:
                 await channel.send(content)
                 logger.info(f"✅ Bot {self.bot_id} sent message to channel {channel_id}: {content[:30]}...")
+                await self._send_debug(
+                    "✅ Message sent",
+                    {"channel": channel_id, "content": content[:50]}
+                )
             else:
                 logger.error(f"❌ Bot {self.bot_id}: Channel not found: {channel_id}")
+                await self._send_debug(
+                    "❌ Channel not found",
+                    {"channel": channel_id}
+                )
         except Exception as e:
             logger.error(f"❌ Bot {self.bot_id} error sending message: {e}")
+            await self._send_debug(
+                "❌ Error sending message",
+                {"channel": channel_id, "error": str(e)}
+            )

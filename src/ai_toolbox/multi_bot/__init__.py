@@ -10,6 +10,10 @@ from .config import (
     ROLE_CHARACTERISTICS,
     DISCORD_ID_TO_BOT_ID,
     BOT_ID_TO_DISCORD_ID,
+    DEBUG_MODE,
+    DEBUG_CHANNEL_ID,
+    DEBUG_AUTHOR_ID,
+    DEBUG_PREFIX,
 )
 from .models import (
     UnifiedMessage,
@@ -31,6 +35,10 @@ __all__ = [
     "ROLE_CHARACTERISTICS",
     "DISCORD_ID_TO_BOT_ID",
     "BOT_ID_TO_DISCORD_ID",
+    "DEBUG_MODE",
+    "DEBUG_CHANNEL_ID",
+    "DEBUG_AUTHOR_ID",
+    "DEBUG_PREFIX",
     "UnifiedMessage",
     "CrossChannelTask",
     "BotState",

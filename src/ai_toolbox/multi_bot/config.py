@@ -131,6 +131,16 @@ BOT_ID_TO_DISCORD_ID = {v: k for k, v in DISCORD_ID_TO_BOT_ID.items()}
 
 
 # =============================================================================
+# Debug Mode Configuration
+# =============================================================================
+
+DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
+DEBUG_CHANNEL_ID = os.getenv("DEBUG_CHANNEL_ID", "1478759781425745940")  # 金銮殿
+DEBUG_AUTHOR_ID = "__DEBUG_BOT__"  # Virtual author ID for debug messages
+DEBUG_PREFIX = "🔍 [DEBUG]"
+
+
+# =============================================================================
 # Bot Configuration
 # =============================================================================
 
