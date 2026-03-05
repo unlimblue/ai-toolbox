@@ -480,3 +480,78 @@ class TestIntegration:
         assert task.target_channel == "1477312823817277681"  # 内阁
         assert "chengxiang" in task.target_bots
         assert "taiwei" in task.target_bots
+
+
+class TestRoleMentionConversion:
+    """Test role mention to bot_id conversion."""
+    
+    def test_role_mention_recognition(self):
+        """Test that role mentions are correctly converted to bot_ids."""
+        from ai_toolbox.multi_bot.hub_listener import discord_message_to_unified
+        from ai_toolbox.multi_bot.config import ROLE_ID_TO_BOT_ID
+        
+        # Create mock Discord message with role mention
+        mock_message = Mock()
+        mock_message.id = 12345
+        mock_message.author = Mock()
+        mock_message.author.id = 99999
+        mock_message.author.display_name = "TestUser"
+        mock_message.content = "<@&1477314769764614239> 你好"  # 丞相角色
+        mock_message.channel = Mock()
+        mock_message.channel.id = 1478759781425745940
+        mock_message.created_at = datetime.now()
+        mock_message.mentions = []  # No user mentions
+        mock_message.role_mentions = [Mock(id=1477314769764614239)]  # 丞相角色
+        
+        unified = discord_message_to_unified(mock_message)
+        
+        # Should recognize role mention as chengxiang
+        assert "chengxiang" in unified.mentions
+        assert len(unified.mentions) == 1
+    
+    def test_multiple_role_mentions(self):
+        """Test multiple role mentions."""
+        from ai_toolbox.multi_bot.hub_listener import discord_message_to_unified
+        
+        mock_message = Mock()
+        mock_message.id = 12345
+        mock_message.author = Mock()
+        mock_message.author.id = 99999
+        mock_message.author.display_name = "TestUser"
+        mock_message.content = "<@&1477314769764614239> <@&1478217215936430092> 商议"
+        mock_message.channel = Mock()
+        mock_message.channel.id = 1478759781425745940
+        mock_message.created_at = datetime.now()
+        mock_message.mentions = []
+        mock_message.role_mentions = [
+            Mock(id=1477314769764614239),  # 丞相角色
+            Mock(id=1478217215936430092),  # 太尉角色
+        ]
+        
+        unified = discord_message_to_unified(mock_message)
+        
+        # Should recognize both
+        assert "chengxiang" in unified.mentions
+        assert "taiwei" in unified.mentions
+        assert len(unified.mentions) == 2
+    
+    def test_unknown_role_mention_not_recognized(self):
+        """Test that unknown role mentions are not included."""
+        from ai_toolbox.multi_bot.hub_listener import discord_message_to_unified
+        
+        mock_message = Mock()
+        mock_message.id = 12345
+        mock_message.author = Mock()
+        mock_message.author.id = 99999
+        mock_message.author.display_name = "TestUser"
+        mock_message.content = "<@&9999999999999999999> 你好"  # Unknown role
+        mock_message.channel = Mock()
+        mock_message.channel.id = 1478759781425745940
+        mock_message.created_at = datetime.now()
+        mock_message.mentions = []
+        mock_message.role_mentions = [Mock(id=9999999999999999999)]
+        
+        unified = discord_message_to_unified(mock_message)
+        
+        # Should not include unknown role
+        assert len(unified.mentions) == 0

@@ -10,6 +10,7 @@ import discord
 from .models import UnifiedMessage
 from .config import (
     DISCORD_ID_TO_BOT_ID,
+    ROLE_ID_TO_BOT_ID,
     DEBUG_MODE,
     DEBUG_CHANNEL_ID,
     DEBUG_AUTHOR_ID,
@@ -214,6 +215,8 @@ def discord_message_to_unified(message: discord.Message) -> UnifiedMessage:
     """
     # Extract mentions (convert Discord ID to bot_id)
     mentions = []
+    
+    # Check user mentions
     for mention in message.mentions:
         discord_id = str(mention.id)
         if discord_id in DISCORD_ID_TO_BOT_ID:
@@ -222,9 +225,11 @@ def discord_message_to_unified(message: discord.Message) -> UnifiedMessage:
             # Fallback: use Discord ID directly if bot but not in mapping
             mentions.append(discord_id)
     
-    # Also check role mentions if needed
-    # for role in message.role_mentions:
-    #     mentions.append(f"role_{role.id}")
+    # Check role mentions
+    for role in message.role_mentions:
+        role_id = str(role.id)
+        if role_id in ROLE_ID_TO_BOT_ID:
+            mentions.append(ROLE_ID_TO_BOT_ID[role_id])
     
     return UnifiedMessage(
         id=str(message.id),
