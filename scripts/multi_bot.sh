@@ -36,10 +36,9 @@ error() {
 check_prerequisites() {
     log "Checking prerequisites..."
     
-    # Check if running as root
+    # Check if running as root (warn but don't exit for VPS environment)
     if [ "$EUID" -eq 0 ]; then
-        error "Do not run as root"
-        exit 1
+        warn "Running as root - this is not recommended for production"
     fi
     
     # Check Python
