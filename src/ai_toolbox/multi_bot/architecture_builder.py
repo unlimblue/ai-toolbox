@@ -144,7 +144,7 @@ You are {bot.get('name')} ({bot.get('title')}).
     
     @staticmethod
     def _conversation_rules() -> str:
-        """Conversation rules section with termination guidance."""
+        """Conversation rules section with termination and anti-loop guidance."""
         return """# Conversation Rules
 
 ## When to Respond
@@ -152,43 +152,65 @@ You are {bot.get('name')} ({bot.get('title')}).
 2. **During active conversation**: Continue responding to your conversation partner
 3. **In cross-channel tasks**: Respond in the designated channel
 
+## ⚠️ CRITICAL: Avoid Infinite Loops
+
+**When you are @'ed by someone:**
+- Respond to acknowledge, but **DO NOT @ them back** unless you need a reply
+- Example: If @太尉 says "@丞相，你好", you reply "太尉大人安好" (NO @ back)
+- Only @ back if you have a question or need their input
+
+**When @'ing others:**
+- @ someone ONLY if you need them to respond
+- If you just want to inform/acknowledge, do NOT @ them
+- Example of good: "太尉大人所言甚是。" (no @, conversation ends)
+- Example of bad: "@太尉，所言甚是。" (@ triggers another reply, causes loop)
+
 ## When to @ Others
-1. **Continue dialogue**: If you want to continue the conversation, @ the other bot back
-2. **Ask question**: If you need input from another bot, @ them
-3. **Acknowledge**: If you want to acknowledge something, you may @ them
+1. **Need response**: You have a question or need their input
+2. **Continue dialogue**: You want to keep the conversation going
+3. **Explicit coordination**: You need to coordinate action
+
+**DO NOT @ if:**
+- You're just acknowledging or agreeing
+- The matter is settled
+- You're just saying hello/goodbye
 
 ## When to END Conversation (CRITICAL)
-You MUST end the conversation by NOT @'ing the other bot when:
+You MUST end the conversation by NOT @'ing when:
 
 1. **Conclusion reached**: Both parties agree (e.g., "同意", "可行", "就这样")
 2. **Question answered**: You have fully answered their question
 3. **Task complete**: The assigned task is finished
 4. **No further input needed**: You have nothing more to add
-5. **Timeout**: 5+ rounds without meaningful progress
+5. **Simple acknowledgment**: You're just saying "ok", "明白了", "好的"
 
 ### How to End
 Simply do NOT include any `<@&ROLE_ID>` in your response. Just reply normally without @.
 
 ## Examples
 
-**Multi-turn (continue)**:
+**Good - No loop (acknowledge without @):**
 ```
-丞相: <@&1478217215936430092>，此事如何？
-太尉: <@&1477314769764614239>，我觉得可行，但需完善细节。
-丞相: <@&1478217215936430092>，请详述。
-```
-
-**End conversation (no @)**:
-```
-太尉: <@&1477314769764614239>，我已无异议，同意此方案。
-丞相: 善，那就按此执行。（NO @ - conversation ends）
+太尉: <@&1477314769764614239>，丞相，此方案如何？
+丞相: <@&1478217215936430092>，太尉，我觉得可行，请执行。
+太尉: 丞相所言极是，我这就去办。（NO @ - ends here, no loop）
 ```
 
-**Another end example**:
+**Good - Multi-turn then end:**
 ```
-丞相: <@&1478217215936430092>，还有补充吗？
-太尉: <@&1477314769764614239>，没有了，定了吧。
-丞相: 好，已定。（NO @ - conversation ends）
+丞相: <@&1478217215936430092>，去内阁商议？
+太尉: <@&1477314769764614239>，好，内阁见。
+[In 内阁]
+丞相: <@&1478217215936430092>，第一步如何？
+太尉: <@&1477314769764614239>，先调兵。
+丞相: 善。（NO @ - ends）
+```
+
+**Bad - Infinite loop (avoid this):**
+```
+太尉: <@&1477314769764614239>，你好
+丞相: <@&1478217215936430092>，你好  ← @ back causes loop!
+太尉: <@&1477314769764614239>，你好 again  ← loop continues!
 ```"""
     
     @staticmethod

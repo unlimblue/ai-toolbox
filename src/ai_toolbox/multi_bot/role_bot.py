@@ -436,11 +436,16 @@ class RoleBot:
             # Build context using context filter
             context_text = self.context_filter.get_context_for_prompt(limit=10)
             
-            # Build prompt
+            # Build prompt with anti-loop instruction
             prompt = f"""相关对话：
 {context_text}
 
 {message.author_name}：{message.content}
+
+⚠️ 重要提醒：
+- 如果你是被对方@了，回复时**不要@回去**，除非你需要对方回复
+- 只有当你有问题或需要继续讨论时，才@对方
+- 简单的回应、同意、确认，都不要@，避免无限循环
 
 请回复："""
             
