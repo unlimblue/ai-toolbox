@@ -167,16 +167,17 @@ class MessageBus:
         
         Detects patterns like:
         - "@丞相 @太尉 去内阁商议"
-        - "@丞相 到内阁讨论"
+        - "@丞相 到内阁通知太尉"
         """
         from .config_loader import get_config
         config = get_config()
         
         content = message.content.lower()
+        original_content = message.content
         
         # Check for cross-channel keywords
-        has_mention = "@" in message.content
-        has_action = any(k in content for k in ["去", "到", "在"])
+        has_mention = "@" in original_content or "<@" in original_content
+        has_action = any(k in content for k in ["去", "到", "在", "通知", "叫", "传"])
         
         # Get channel aliases from config
         channel_aliases = {
@@ -204,18 +205,40 @@ class MessageBus:
         # Resolve channel ID from config
         target_channel_id = config.resolve_channel_id(mentioned_channel)
         
-        if not target_channel_id or not message.mentions:
+        if not target_channel_id:
             return None
         
         # Don't create task if target is same as source
         if target_channel_id == message.channel_id:
             return None
         
+        # Collect all target bots
+        target_bots = list(message.mentions) if message.mentions else []
+        
+        # Also check if message content mentions other bots by name
+        # This handles "@丞相 去内阁通知太尉" pattern
+        for bot_id, bot_config in config.bots.items():
+            if bot_id not in target_bots:
+                bot_name = bot_config.get('name', '')
+                # Check if bot name appears in message (but not as the sender)
+                if bot_name and bot_name in original_content:
+                    # Make sure this bot isn't the author
+                    author_is_bot = False
+                    for uid, bid in config.discord_config.get("user_id_to_bot", {}).items():
+                        if bid == bot_id and message.author_id == uid:
+                            author_is_bot = True
+                            break
+                    if not author_is_bot:
+                        target_bots.append(bot_id)
+        
+        if not target_bots:
+            return None
+        
         return CrossChannelTask(
             task_id=str(uuid.uuid4()),
             source_channel=message.channel_id,
             target_channel=target_channel_id,
-            target_bots=message.mentions,
+            target_bots=target_bots,
             instruction=message.content,
             status="pending"
         )
