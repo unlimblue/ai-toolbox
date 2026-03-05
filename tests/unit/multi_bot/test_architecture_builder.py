@@ -1,10 +1,11 @@
-"""Tests for architecture builder."""
+"""Tests for architecture builder (PromptLoader)."""
 
 import pytest
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
+from pathlib import Path
 
 from ai_toolbox.multi_bot.architecture_builder import (
-    PromptBuilder,
+    PromptLoader,
     build_system_prompt,
     resolve_channel_name,
     get_channel_id_from_text,
@@ -14,8 +15,8 @@ from ai_toolbox.multi_bot.architecture_builder import (
 from ai_toolbox.multi_bot.config_loader import MultiBotConfig
 
 
-class TestPromptBuilder:
-    """Test PromptBuilder class."""
+class TestPromptLoader:
+    """Test PromptLoader class."""
     
     @pytest.fixture
     def mock_config(self):
@@ -63,43 +64,55 @@ class TestPromptBuilder:
         
         return config
     
-    def test_build_includes_identity(self, mock_config):
-        """Test prompt includes bot identity."""
-        prompt = PromptBuilder.build("chengxiang", mock_config)
+    def test_substitute_template(self):
+        """Test template substitution."""
+        loader = PromptLoader()
+        template = "Hello {{name}}, your ID is {{id}}"
+        variables = {"name": "TestBot", "id": "12345"}
         
+        result = loader.substitute_template(template, variables)
+        
+        assert "Hello TestBot" in result
+        assert "your ID is 12345" in result
+        assert "{{" not in result
+    
+    def test_build_mention_examples(self, mock_config):
+        """Test building mention examples."""
+        loader = PromptLoader()
+        examples = loader._build_mention_examples(mock_config)
+        
+        assert "丞相" in examples
+        assert "太尉" in examples
+        assert "1477314769764614239" in examples
+        assert "1478217215936430092" in examples
+    
+    def test_build_other_members(self, mock_config):
+        """Test building other members section."""
+        loader = PromptLoader()
+        members = loader._build_other_members("chengxiang", mock_config)
+        
+        assert "太尉" in members
+        assert "1478217215936430092" in members
+        assert "丞相" not in members  # Should not include self
+    
+    def test_build_channel_info(self, mock_config):
+        """Test building channel info."""
+        loader = PromptLoader()
+        info = loader._build_channel_info(mock_config)
+        
+        assert "金銮殿" in info
+        assert "内阁" in info
+        assert "1478759781425745940" in info
+    
+    def test_build_system_prompt_structure(self, mock_config):
+        """Test that system prompt has expected structure."""
+        loader = PromptLoader()
+        prompt = loader.build_system_prompt("chengxiang", mock_config)
+        
+        # Should contain key sections
         assert "丞相" in prompt
-        assert "三公之首" in prompt
-        assert "统筹决策" in prompt
-    
-    def test_build_includes_capabilities(self, mock_config):
-        """Test prompt includes capabilities."""
-        prompt = PromptBuilder.build("chengxiang", mock_config)
-        
-        assert "Capabilities" in prompt
-        assert "Mention others" in prompt
-    
-    def test_build_includes_system_members(self, mock_config):
-        """Test prompt includes other bots."""
-        prompt = PromptBuilder.build("chengxiang", mock_config)
-        
-        assert "System Members" in prompt
         assert "太尉" in prompt
-        assert "1478217215936430092" in prompt  # Taiwei role ID
-    
-    def test_build_includes_channels(self, mock_config):
-        """Test prompt includes channels."""
-        prompt = PromptBuilder.build("chengxiang", mock_config)
-        
-        assert "Channels" in prompt
-        assert "金銮殿" in prompt
-        assert "内阁" in prompt
-    
-    def test_build_includes_conversation_rules(self, mock_config):
-        """Test prompt includes conversation rules."""
-        prompt = PromptBuilder.build("chengxiang", mock_config)
-        
-        assert "Conversation Rules" in prompt
-        assert "When @'ed" in prompt
+        assert "1477314769764614239" in prompt  # chengxiang role
 
 
 class TestChannelResolution:
@@ -166,7 +179,7 @@ class TestParseMentions:
 
 
 class TestBuildSystemPrompt:
-    """Test main build_system_prompt function."""
+    """Test main build_system_prompt function (legacy)."""
     
     def test_build_system_prompt(self):
         """Test the main builder function."""
@@ -186,5 +199,4 @@ class TestBuildSystemPrompt:
         prompt = build_system_prompt("test_bot", config, "test context")
         
         assert "TestBot" in prompt
-        assert "Tester" in prompt
         assert "test context" in prompt

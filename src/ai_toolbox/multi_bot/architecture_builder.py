@@ -1,13 +1,16 @@
 """System architecture builder for Multi-Bot System.
 
 OpenClaw-style prompt organization:
-- Modular prompt sections
-- Clear separation of concerns
-- Action-oriented instructions
+- Modular prompt sections from markdown files
+- Template-based variable substitution
+- User-customizable behaviors
 """
 
-from typing import Dict, List, Optional
+import os
 import re
+from pathlib import Path
+from typing import Dict, List, Optional, Any
+import yaml
 
 from .config_loader import MultiBotConfig
 
@@ -26,85 +29,223 @@ CHANNEL_NAME_ALIASES = {
 }
 
 
-class PromptBuilder:
-    """Builds system prompts with modular sections."""
+class PromptLoader:
+    """Loads and combines prompt files with template substitution."""
     
-    @staticmethod
-    def build(bot_id: str, config: MultiBotConfig, context: str = "") -> str:
-        """Build complete system prompt for a bot."""
-        sections = [
-            PromptBuilder._identity(bot_id, config),
-            PromptBuilder._capabilities(),
-            PromptBuilder._system_members(bot_id, config),
-            PromptBuilder._channels(config),
-            PromptBuilder._mention_guide(config),
-            PromptBuilder._conversation_rules(),
-            PromptBuilder._context(context),
-        ]
+    def __init__(self, prompts_dir: Optional[str] = None):
+        """
+        Initialize prompt loader.
         
-        return "\n\n".join(sections)
+        Args:
+            prompts_dir: Directory containing prompt files. 
+                        Defaults to prompts/multi_bot relative to this file.
+        """
+        if prompts_dir is None:
+            # Default: prompts/multi_bot relative to this file
+            current_file = Path(__file__).parent
+            self.prompts_dir = current_file.parent.parent.parent / "prompts" / "multi_bot"
+        else:
+            self.prompts_dir = Path(prompts_dir)
+        
+        self.base_dir = self.prompts_dir / "base"
+        self.roles_dir = self.prompts_dir / "roles"
+        self.behaviors_dir = self.prompts_dir / "behaviors"
     
-    @staticmethod
-    def _identity(bot_id: str, config: MultiBotConfig) -> str:
-        """Bot identity section."""
+    def load_file(self, filename: str, subdir: str = "base") -> str:
+        """Load a prompt file."""
+        filepath = self.prompts_dir / subdir / filename
+        if not filepath.exists():
+            return ""
+        return filepath.read_text(encoding='utf-8')
+    
+    def load_yaml(self, filename: str, subdir: str = "behaviors") -> Dict[str, Any]:
+        """Load a YAML configuration file."""
+        filepath = self.prompts_dir / subdir / filename
+        if not filepath.exists():
+            return {}
+        with open(filepath, 'r', encoding='utf-8') as f:
+            return yaml.safe_load(f) or {}
+    
+    def substitute_template(self, template: str, variables: Dict[str, str]) -> str:
+        """Substitute {{variable}} placeholders in template."""
+        result = template
+        for key, value in variables.items():
+            result = result.replace(f"{{{{{key}}}}}", str(value))
+        return result
+    
+    def build_base_prompt(self, bot_id: str, config: MultiBotConfig) -> str:
+        """Build base prompt sections."""
         bot = config.get_bot_config(bot_id)
         persona = bot.get("persona", {})
         
-        return f"""# Identity
-
-You are {bot.get('name')} ({bot.get('title')}).
-
-- **Bot ID**: `{bot_id}`
-- **Role ID**: `{config.get_role_id_for_bot(bot_id) or 'N/A'}`
-- **Description**: {persona.get('description', '')}
-- **Personality**: {persona.get('personality', '')}
-- **Style**: {persona.get('speech_style', '')}"""
+        # Build template variables
+        variables = {
+            "bot_id": bot_id,
+            "bot_name": bot.get("name", bot_id),
+            "bot_role_id": config.get_role_id_for_bot(bot_id) or "N/A",
+            "bot_title": bot.get("title", ""),
+            "persona_description": persona.get("description", ""),
+            "persona_personality": persona.get("personality", ""),
+            "persona_speech_style": persona.get("speech_style", ""),
+            "mention_examples": self._build_mention_examples(config),
+            "other_members": self._build_other_members(bot_id, config),
+            "channel_info": self._build_channel_info(config),
+            "your_role_id": config.get_role_id_for_bot(bot_id) or "N/A",
+            "other_role_id": self._get_other_role_id(bot_id, config),
+        }
+        
+        # Load and combine base sections
+        sections = []
+        
+        # 1. Identity
+        identity = self.load_file("identity.md")
+        if identity:
+            sections.append(self.substitute_template(identity, variables))
+        
+        # 2. Capabilities
+        capabilities = self.load_file("capabilities.md")
+        if capabilities:
+            sections.append(self.substitute_template(capabilities, variables))
+        
+        # 3. System Members
+        members = self.load_file("members.md")
+        if members:
+            sections.append(self.substitute_template(members, variables))
+        
+        # 4. Rules
+        rules = self.load_file("rules.md")
+        if rules:
+            sections.append(self.substitute_template(rules, variables))
+        
+        return "\n\n".join(sections)
     
-    @staticmethod
-    def _capabilities() -> str:
-        """Bot capabilities section."""
-        return """# Capabilities
-
-1. **Mention others**: Use `<@&ROLE_ID>` format to @ other bots
-2. **Switch channels**: You can speak in any channel listed below
-3. **Multi-turn dialogue**: Continue @ing others to maintain conversation
-4. **Understand aliases**: "内阁" = jinluan, "兵部" = bingbu, etc."""
+    def build_role_prompt(self, bot_id: str, config: MultiBotConfig) -> str:
+        """Load role-specific prompt if exists."""
+        # Try to load role-specific file
+        role_file = f"{bot_id}.md"
+        role_content = self.load_file(role_file, subdir="roles")
+        
+        if role_content:
+            # Substitute variables in role content too
+            bot = config.get_bot_config(bot_id)
+            persona = bot.get("persona", {})
+            variables = {
+                "bot_id": bot_id,
+                "bot_name": bot.get("name", bot_id),
+                "bot_role_id": config.get_role_id_for_bot(bot_id) or "N/A",
+                "bot_title": bot.get("title", ""),
+                "persona_description": persona.get("description", ""),
+                "persona_personality": persona.get("personality", ""),
+                "persona_speech_style": persona.get("speech_style", ""),
+            }
+            return self.substitute_template(role_content, variables)
+        
+        return ""
     
-    @staticmethod
-    def _system_members(my_bot_id: str, config: MultiBotConfig) -> str:
-        """System members section."""
-        my_bot_config = config.get_bot_config(my_bot_id)
-        my_name = my_bot_config.get('name', my_bot_id)
+    def build_behavior_prompt(self, behavior_config: Optional[str] = None) -> str:
+        """Load behavior configuration."""
+        if behavior_config is None:
+            behavior_config = "default.yaml"
+        
+        # Load YAML config
+        config = self.load_yaml(behavior_config)
+        
+        # Convert to prompt section
+        sections = []
+        
+        # Add custom instructions if present
+        if "custom_instructions" in config:
+            sections.append("# Custom Instructions\n")
+            sections.append(config["custom_instructions"])
+        
+        # Add behavior settings
+        settings = []
+        for key, value in config.items():
+            if key != "custom_instructions":
+                settings.append(f"- **{key}**: {value}")
+        
+        if settings:
+            sections.append("# Behavior Settings\n")
+            sections.append("\n".join(settings))
+        
+        return "\n\n".join(sections) if sections else ""
+    
+    def build_system_prompt(
+        self, 
+        bot_id: str, 
+        config: MultiBotConfig, 
+        behavior_config: Optional[str] = None,
+        context: str = ""
+    ) -> str:
+        """
+        Build complete system prompt by combining all sections.
+        
+        Args:
+            bot_id: Bot identifier
+            config: MultiBotConfig instance
+            behavior_config: Behavior configuration file name
+            context: Additional context to append
+            
+        Returns:
+            Complete system prompt
+        """
+        sections = []
+        
+        # 1. Base prompt (identity, capabilities, rules)
+        base = self.build_base_prompt(bot_id, config)
+        if base:
+            sections.append(base)
+        
+        # 2. Role-specific prompt
+        role = self.build_role_prompt(bot_id, config)
+        if role:
+            sections.append(role)
+        
+        # 3. Behavior configuration
+        behavior = self.build_behavior_prompt(behavior_config)
+        if behavior:
+            sections.append(behavior)
+        
+        # 4. Current context
+        if context:
+            sections.append(f"# Current Context\n\n{context}")
+        
+        return "\n\n---\n\n".join(sections)
+    
+    def _build_mention_examples(self, config: MultiBotConfig) -> str:
+        """Build mention examples for system prompt."""
+        lines = []
+        for bot_id in config.bots.keys():
+            role_id = config.get_role_id_for_bot(bot_id)
+            name = config.get_bot_config(bot_id).get('name', bot_id)
+            if role_id:
+                lines.append(f"- {name}: `<@&{role_id}>`")
+        return "\n".join(lines)
+    
+    def _build_other_members(self, my_bot_id: str, config: MultiBotConfig) -> str:
+        """Build other members section."""
+        lines = []
         my_role_id = config.get_role_id_for_bot(my_bot_id)
         
-        lines = ["# System Members\n"]
-        lines.append(f"## You\n")
-        lines.append(f"- **Name**: {my_name}")
-        lines.append(f"- **Bot ID**: `{my_bot_id}`")
-        lines.append(f"- **Your Role ID**: `{my_role_id}`")
-        lines.append(f"- **When someone @ you**: They will type `<@&{my_role_id}>` or you will see '@{my_name}' in Discord\n")
-        
-        lines.append("## Other Members\n")
         for bot_id, bot in config.bots.items():
             if bot_id != my_bot_id:
                 role_id = config.get_role_id_for_bot(bot_id)
-                bot_name = bot.get('name', bot_id)
-                lines.append(f"- **{bot_name}** (`{bot_id}`)")
+                name = bot.get('name', bot_id)
+                lines.append(f"- **{name}** (`{bot_id}`)")
                 lines.append(f"  - Role ID: `{role_id}`")
-                lines.append(f"  - To @ them: Type `<@&{role_id}>` in your response")
-                lines.append(f"  - When they @ you: You will see `<@&{my_role_id}>` or '@{my_name}'")
+                lines.append(f"  - To @ them: Type `<@&{role_id}>`")
+                lines.append(f"  - When they @ you: You see `<@&{my_role_id}>` or '@你'")
                 lines.append(f"  - Title: {bot.get('title', '')}")
                 lines.append("")
         
         return "\n".join(lines)
     
-    @staticmethod
-    def _channels(config: MultiBotConfig) -> str:
-        """Available channels section."""
-        lines = ["# Channels\n"]
+    def _build_channel_info(self, config: MultiBotConfig) -> str:
+        """Build channel information section."""
+        lines = []
         
-        # Channel aliases reference
-        lines.append("## Aliases\n")
+        # Aliases
+        lines.append("### Aliases\n")
         aliases_by_channel = {}
         for alias, key in CHANNEL_NAME_ALIASES.items():
             if key not in aliases_by_channel:
@@ -116,116 +257,33 @@ You are {bot.get('name')} ({bot.get('title')}).
                 channel = config.channels[key]
                 lines.append(f"- `{key}` ({channel.get('name')}): {', '.join(set(aliases))}")
         
-        # Channel details
-        lines.append("\n## Details\n")
+        # Details
+        lines.append("\n### Channel IDs\n")
         for key, channel in config.channels.items():
-            lines.append(
-                f"- `{key}`: {channel.get('name')} "
-                f"(ID: {channel.get('id')})"
-            )
+            lines.append(f"- `{key}`: ID `{channel.get('id')}`")
         
         return "\n".join(lines)
     
-    @staticmethod
-    def _mention_guide(config: MultiBotConfig) -> str:
-        """How to mention others section."""
-        lines = ["# How to @ Others\n"]
-        
-        lines.append("## Format\n")
-        lines.append("Use `<@&ROLE_ID>` format. Examples:\n")
-        
+    def _get_other_role_id(self, my_bot_id: str, config: MultiBotConfig) -> str:
+        """Get another bot's role ID for examples."""
         for bot_id in config.bots.keys():
-            role_id = config.get_role_id_for_bot(bot_id)
-            name = config.get_bot_config(bot_id).get('name', bot_id)
-            if role_id:
-                lines.append(f"- {name}: `<@&{role_id}>`")
-        
-        return "\n".join(lines)
-    
-    @staticmethod
-    def _conversation_rules() -> str:
-        """Conversation rules section with termination and anti-loop guidance."""
-        return """# Conversation Rules
-
-## When to Respond
-1. **When @'ed directly**: Always respond immediately
-2. **During active conversation**: Continue responding to your conversation partner
-3. **In cross-channel tasks**: Respond in the designated channel
-
-## ⚠️ CRITICAL: Avoid Infinite Loops
-
-**When you are @'ed by someone:**
-- Respond to acknowledge, but **DO NOT @ them back** unless you need a reply
-- Example: If @太尉 says "@丞相，你好", you reply "太尉大人安好" (NO @ back)
-- Only @ back if you have a question or need their input
-
-**When @'ing others:**
-- @ someone ONLY if you need them to respond
-- If you just want to inform/acknowledge, do NOT @ them
-- Example of good: "太尉大人所言甚是。" (no @, conversation ends)
-- Example of bad: "@太尉，所言甚是。" (@ triggers another reply, causes loop)
-
-## When to @ Others
-1. **Need response**: You have a question or need their input
-2. **Continue dialogue**: You want to keep the conversation going
-3. **Explicit coordination**: You need to coordinate action
-
-**DO NOT @ if:**
-- You're just acknowledging or agreeing
-- The matter is settled
-- You're just saying hello/goodbye
-
-## When to END Conversation (CRITICAL)
-You MUST end the conversation by NOT @'ing when:
-
-1. **Conclusion reached**: Both parties agree (e.g., "同意", "可行", "就这样")
-2. **Question answered**: You have fully answered their question
-3. **Task complete**: The assigned task is finished
-4. **No further input needed**: You have nothing more to add
-5. **Simple acknowledgment**: You're just saying "ok", "明白了", "好的"
-
-### How to End
-Simply do NOT include any `<@&ROLE_ID>` in your response. Just reply normally without @.
-
-## Examples
-
-**Good - No loop (acknowledge without @):**
-```
-太尉: <@&1477314769764614239>，丞相，此方案如何？
-丞相: <@&1478217215936430092>，太尉，我觉得可行，请执行。
-太尉: 丞相所言极是，我这就去办。（NO @ - ends here, no loop）
-```
-
-**Good - Multi-turn then end:**
-```
-丞相: <@&1478217215936430092>，去内阁商议？
-太尉: <@&1477314769764614239>，好，内阁见。
-[In 内阁]
-丞相: <@&1478217215936430092>，第一步如何？
-太尉: <@&1477314769764614239>，先调兵。
-丞相: 善。（NO @ - ends）
-```
-
-**Bad - Infinite loop (avoid this):**
-```
-太尉: <@&1477314769764614239>，你好
-丞相: <@&1478217215936430092>，你好  ← @ back causes loop!
-太尉: <@&1477314769764614239>，你好 again  ← loop continues!
-```"""
-    
-    @staticmethod
-    def _context(context: str) -> str:
-        """Current context section."""
-        return f"""# Current Context
-
-{context or "(No active context)"}"""
+            if bot_id != my_bot_id:
+                return config.get_role_id_for_bot(bot_id) or "N/A"
+        return "N/A"
 
 
-def build_system_prompt(bot_id: str, config: MultiBotConfig, context: str = "") -> str:
+# Legacy function for backward compatibility
+def build_system_prompt(
+    bot_id: str, 
+    config: MultiBotConfig, 
+    context: str = ""
+) -> str:
     """Build system prompt for a bot."""
-    return PromptBuilder.build(bot_id, config, context)
+    loader = PromptLoader()
+    return loader.build_system_prompt(bot_id, config, context=context)
 
 
+# Channel resolution functions
 def resolve_channel_name(text: str) -> Optional[str]:
     """Resolve channel alias to config key."""
     for alias, key in CHANNEL_NAME_ALIASES.items():

@@ -1,0 +1,22 @@
+# Conversation Behavior Configuration
+# User-customizable settings for bot behavior
+
+# Response style: formal, casual, concise, detailed
+response_style: formal
+
+# Auto-terminate conversation when no @ in response
+auto_terminate: true
+
+# Maximum conversation rounds before forcing conclusion
+max_conversation_rounds: 5
+
+# Mention format: role or user
+mention_format: role
+
+# Minutes of inactivity before ending conversation
+conversation_timeout: 10
+
+# Custom instructions appended to system prompt
+custom_instructions: |
+  Follow the conversation rules carefully.
+  Avoid infinite loops by not @'ing back unless necessary.
