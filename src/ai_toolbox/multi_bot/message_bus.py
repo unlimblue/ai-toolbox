@@ -206,11 +206,22 @@ class MessageBus:
     
     async def _distribute_message(self, message: UnifiedMessage):
         """Distribute message to relevant bots."""
-        # Get bots for this channel
-        channel_bots = self.channel_map.get(message.channel_id, [])
-        
-        # Also include mentioned bots that might not be in channel
-        target_bots = set(channel_bots + message.mentions)
+        # Determine target bots
+        if message.mentions:
+            # If message has mentions, only deliver to mentioned bots
+            target_bots = set(message.mentions)
+            await self._send_debug(
+                "📨 Distributing to mentioned bots only",
+                {"mentions": message.mentions}
+            )
+        else:
+            # If no mentions, deliver to all bots in the channel
+            channel_bots = self.channel_map.get(message.channel_id, [])
+            target_bots = set(channel_bots)
+            await self._send_debug(
+                "📨 Distributing to all channel bots (no mentions)",
+                {"channel_bots": channel_bots}
+            )
         
         # Debug: Log distribution
         await self._send_debug(
@@ -220,6 +231,10 @@ class MessageBus:
         
         for bot_id in target_bots:
             if bot_id not in self.role_bots:
+                await self._send_debug(
+                    f"⚠️ Bot {bot_id} not registered, skipping",
+                    {"registered_bots": list(self.role_bots.keys())}
+                )
                 continue
             
             if self._should_deliver(bot_id, message):
@@ -236,6 +251,10 @@ class MessageBus:
                         f"❌ Failed to deliver to {bot_id}",
                         {"error": str(e)}
                     )
+            else:
+                await self._send_debug(
+                    f"⏭️ _should_deliver returned False for {bot_id}"
+                )
     
     def _should_deliver(self, bot_id: str, message: UnifiedMessage) -> bool:
         """Determine if message should be delivered to bot."""

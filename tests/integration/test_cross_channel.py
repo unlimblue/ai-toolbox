@@ -475,3 +475,41 @@ class TestMessageDistribution:
         await bus.publish(msg)
         
         mock_bot.handle_message.assert_called_once()
+    
+    @pytest.mark.asyncio
+    async def test_message_only_delivered_to_mentioned_bots(self):
+        """Test that when message has mentions, only mentioned bots receive it."""
+        bus = MessageBus()
+        
+        # Create two bots in the same channel
+        mock_chengxiang = Mock()
+        mock_chengxiang.config = Mock()
+        mock_chengxiang.config.bot_id = "chengxiang"
+        mock_chengxiang.config.channels = ["金銮殿"]
+        mock_chengxiang.handle_message = AsyncMock()
+        
+        mock_taiwei = Mock()
+        mock_taiwei.config = Mock()
+        mock_taiwei.config.bot_id = "taiwei"
+        mock_taiwei.config.channels = ["金銮殿"]
+        mock_taiwei.handle_message = AsyncMock()
+        
+        bus.register_bot(mock_chengxiang)
+        bus.register_bot(mock_taiwei)
+        
+        # Message only mentions chengxiang
+        msg = UnifiedMessage(
+            id="1",
+            author_id="user1",
+            author_name="User",
+            content="@丞相 Hello",  # Only mention chengxiang
+            channel_id="1478759781425745940",  # 金銮殿
+            timestamp=datetime.now(),
+            mentions=["chengxiang"]  # Only chengxiang is mentioned
+        )
+        
+        await bus.publish(msg)
+        
+        # Only chengxiang should receive the message
+        mock_chengxiang.handle_message.assert_called_once()
+        mock_taiwei.handle_message.assert_not_called()  # Should NOT be called

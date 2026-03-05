@@ -93,20 +93,50 @@ class RoleBot:
         Args:
             message: UnifiedMessage to process
         """
+        await self._send_debug(
+            "📥 handle_message called",
+            {
+                "message_id": message.id,
+                "author_id": message.author_id,
+                "bot_id": self.bot_id,
+                "mentions": message.mentions,
+                "is_own_message": message.author_id == self.bot_id,
+                "is_mentioned": self.bot_id in message.mentions
+            }
+        )
+        
         # Update context if relevant
         added = self.context_filter.add_message(message)
         if added:
             logger.debug(f"Bot {self.bot_id} added message to context")
+            await self._send_debug("📝 Message added to context")
+        else:
+            await self._send_debug("⏭️ Message not relevant, not added to context")
         
         # Handle based on state
         if self.state == BotState.DISCUSSING and self.current_task:
+            await self._send_debug("🔍 Checking for conclusion trigger")
             self._check_conclusion(message)
         
         # Generate response if needed
-        if self._should_respond(message):
+        should_respond = self._should_respond(message)
+        await self._send_debug(
+            f"🤔 _should_respond returned: {should_respond}"
+        )
+        
+        if should_respond:
+            await self._send_debug("📝 Generating response...")
             response = await self._generate_response(message)
             if response:
+                await self._send_debug(
+                    "✅ Response generated, sending...",
+                    {"response": response[:50]}
+                )
                 await self.send_message(message.channel_id, response)
+            else:
+                await self._send_debug("❌ No response generated")
+        else:
+            await self._send_debug("⏭️ Not generating response")
     
     async def handle_task(self, task: CrossChannelTask):
         """

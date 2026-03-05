@@ -14,3 +14,7 @@
 2026-03-05 04:41:52,318 - ai_toolbox.multi_bot.hub_listener - INFO - Monitoring 1 guild(s)
 2026-03-05 04:41:52,495 - ai_toolbox.multi_bot.hub_listener - INFO -   - 赛博王朝 (1477272575406112832)
 2026-03-05 04:41:52,495 - ai_toolbox.multi_bot.hub_listener - INFO -     Channels: 兵部, 内阁, 金銮殿
+2026-03-05 04:42:43,580 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #金銮殿: <@&1477314769764614239> <@&1478217215936430092> 在内...
+2026-03-05 04:42:43,581 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 04:45:06,121 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 我在金銮殿at 丞相和太尉，令其在内阁中相互问候，并汇...
+2026-03-05 04:45:06,121 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
