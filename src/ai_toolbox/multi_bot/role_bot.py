@@ -323,7 +323,24 @@ class RoleBot:
                     "✅ Response generated, sending...",
                     {"response": response[:50]}
                 )
-                await self.send_message(message.channel_id, response)
+                
+                # Determine which channel to respond in
+                # If in cross-channel task, use target_channel
+                # Otherwise use the message's channel
+                if self.state == BotState.DISCUSSING and self.current_task:
+                    response_channel = self.current_task.target_channel
+                    await self._send_debug(
+                        "📍 Using target channel (cross-channel task)",
+                        {"channel": response_channel}
+                    )
+                else:
+                    response_channel = message.channel_id
+                    await self._send_debug(
+                        "📍 Using message channel",
+                        {"channel": response_channel}
+                    )
+                
+                await self.send_message(response_channel, response)
                 
                 # Check if conversation should end (no mentions in response)
                 has_mentions = '<@&' in response or '<@' in response
@@ -436,11 +453,25 @@ class RoleBot:
             # Build context using context filter
             context_text = self.context_filter.get_context_for_prompt(limit=10)
             
-            # Get current channel name from message
-            current_channel = self._get_channel_name(message.channel_id)
+            # Determine which channel we're in
+            if self.state == BotState.DISCUSSING and self.current_task:
+                # In cross-channel task, use target channel
+                current_channel = self._get_channel_name(self.current_task.target_channel)
+                task_context = f"""
+你正在执行跨频道任务：
+- 任务地点：{current_channel}
+- 任务内容：{self.current_task.instruction}
+- 协作对象：{', '.join(self.current_task.target_bots)}
+
+⚠️ 重要：你和协作对象应该在【{current_channel}】继续对话，不要回到原来的频道。
+"""
+            else:
+                # Normal conversation, use message channel
+                current_channel = self._get_channel_name(message.channel_id)
+                task_context = f"当前位置：{current_channel}"
             
             # Build prompt with anti-loop instruction and channel context
-            prompt = f"""当前位置：{current_channel}
+            prompt = f"""{task_context}
 
 相关对话：
 {context_text}
@@ -451,7 +482,6 @@ class RoleBot:
 - 如果你是被对方@了，回复时**不要@回去**，除非你需要对方回复
 - 只有当你有问题或需要继续讨论时，才@对方
 - 简单的回应、同意、确认，都不要@，避免无限循环
-- 你正在 {current_channel} 中对话
 
 请回复："""
             
