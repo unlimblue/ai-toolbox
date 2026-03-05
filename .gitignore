@@ -26,4 +26,4 @@ wheels/
 htmlcov/
 .venv/
 venv/
-ENV/
+ENV/logs/
