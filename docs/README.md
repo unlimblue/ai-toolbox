@@ -16,7 +16,8 @@ AI-Toolbox project documentation.
 ### For Developers
 | Document | Purpose |
 |----------|---------|
-| [multi-bot/design.md](multi-bot/design.md) | System architecture |
+| [multi-bot/ARCHITECTURE.md](multi-bot/ARCHITECTURE.md) | **Config-driven architecture (NEW)** |
+| [multi-bot/design.md](multi-bot/design.md) | System design overview |
 | [multi-bot/debug.md](multi-bot/debug.md) | Debug mode usage |
 | [development/fix_conversation_and_channel.md](development/fix_conversation_and_channel.md) | Current fix plan |
 
