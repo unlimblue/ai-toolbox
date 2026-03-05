@@ -13,6 +13,8 @@ from ..providers.base import ChatMessage
 from .models import UnifiedMessage, CrossChannelTask, BotState, BotConfig
 from .context_filter import ContextFilter, RelevanceScorer
 from .config_loader import get_config
+from .graph_manager import ContextGraphManager
+from .context_graph import MessageNode
 
 logger = logging.getLogger(__name__)
 
@@ -50,6 +52,11 @@ class RoleBot:
         # Context management
         self.context_filter = ContextFilter(bot_id=self.bot_id, max_context=self.max_context)
         self.relevance_scorer = RelevanceScorer(bot_id=self.bot_id)
+        
+        # Graph-based context manager (new)
+        self.graph_manager = ContextGraphManager()
+        self.current_graph_id: Optional[str] = None
+        self.current_node_id: Optional[str] = None
         
         # Conversation state tracking for multi-turn dialogue
         self.conversation_state = {
@@ -296,7 +303,34 @@ class RoleBot:
             }
         )
         
-        # Update context if relevant
+        # Add to graph-based context (new)
+        try:
+            graph_id = self._get_current_graph_id(message.channel_id)
+            if graph_id:
+                # Find parent nodes (messages that mentioned this bot)
+                parent_ids = self._find_parent_nodes(message, graph_id)
+                node = self.graph_manager.add_message_to_graph(
+                    graph_id=graph_id,
+                    message_id=message.id,
+                    author_id=message.author_id,
+                    author_name=message.author_name,
+                    content=message.content,
+                    channel_id=message.channel_id,
+                    timestamp=message.timestamp,
+                    mention_targets=message.mentions,
+                    parent_node_ids=parent_ids
+                )
+                self.current_node_id = node.id
+                self.current_graph_id = graph_id
+                await self._send_debug(
+                    "📝 Message added to graph context",
+                    {"graph_id": graph_id, "node_id": node.id}
+                )
+        except Exception as e:
+            logger.error(f"Error adding message to graph: {e}")
+            await self._send_debug(f"⚠️ Graph error: {e}")
+        
+        # Update context if relevant (legacy, keep for compatibility)
         added = self.context_filter.add_message(message)
         if added:
             logger.debug(f"Bot {self.bot_id} added message to context")
@@ -325,8 +359,6 @@ class RoleBot:
                 )
                 
                 # Determine which channel to respond in
-                # If in cross-channel task, use target_channel
-                # Otherwise use the message's channel
                 if self.state == BotState.DISCUSSING and self.current_task:
                     response_channel = self.current_task.target_channel
                     await self._send_debug(
@@ -369,6 +401,23 @@ class RoleBot:
             {"task_id": task.task_id, "state": self.state.value}
         )
         
+        # Create task graph (new)
+        try:
+            task_graph = self.graph_manager.create_task_graph(
+                task_id=task.task_id,
+                source_channel=task.source_channel,
+                target_channel=task.target_channel,
+                participants=task.target_bots
+            )
+            self.current_graph_id = task_graph.graph_id
+            await self._send_debug(
+                "📊 Task graph created",
+                {"graph_id": task_graph.graph_id}
+            )
+        except Exception as e:
+            logger.error(f"Error creating task graph: {e}")
+            await self._send_debug(f"⚠️ Task graph error: {e}")
+        
         # Ensure connected
         if not self._connected:
             logger.info(f"🔌 Bot {self.bot_id} connecting to Discord...")
@@ -392,9 +441,10 @@ class RoleBot:
             "📤 Sending start message to target channel",
             {"channel": task.target_channel}
         )
+        # Simplified start message without redundant instruction repetition
         await self.send_message(
             task.target_channel,
-            f"奉陛下旨意，来此商议：{task.instruction}"
+            "臣已至内阁，请太尉前来会合。"
         )
     
     def _is_relevant(self, message: UnifiedMessage) -> bool:
@@ -413,8 +463,21 @@ class RoleBot:
         # Update conversation state first
         self._update_conversation_state(message)
         
-        # Don't respond to own messages
+        # Don't respond to own messages (multiple checks)
+        # Check 1: author_id matches bot_id
         if message.author_id == self.bot_id:
+            logger.debug("Not responding to own message (author_id match)")
+            return False
+        
+        # Check 2: author_name matches bot name (Discord display name)
+        if hasattr(self.config, 'persona') and self.config.persona:
+            if message.author_name == self.config.persona.name:
+                logger.debug("Not responding to own message (author_name match)")
+                return False
+        
+        # Check 3: author_id matches Discord user ID
+        if self.my_user_id and message.author_id == self.my_user_id:
+            logger.debug("Not responding to own message (user_id match)")
             return False
         
         # Always respond if mentioned
@@ -448,10 +511,30 @@ class RoleBot:
             asyncio.create_task(self._form_conclusion())
     
     async def _generate_response(self, message: UnifiedMessage) -> Optional[str]:
-        """Generate AI response."""
+        """Generate AI response using graph-based context."""
         try:
-            # Build context using context filter
-            context_text = self.context_filter.get_context_for_prompt(limit=10)
+            # Try to get graph-based context first (new)
+            graph_context = None
+            if self.current_graph_id:
+                subgraph = self.graph_manager.extract_subgraph(
+                    self.current_graph_id, 
+                    self.bot_id,
+                    max_depth=10
+                )
+                if subgraph:
+                    # Use branching format for complex conversations
+                    if len(subgraph.nodes) > 3 and any(len(n.parents) > 1 for n in subgraph.nodes.values()):
+                        graph_context = subgraph.get_branching_history()
+                    else:
+                        graph_context = subgraph.get_linear_history()
+                    await self._send_debug(
+                        "📊 Using graph context",
+                        {"nodes": len(subgraph.nodes), "edges": len(subgraph.edges)}
+                    )
+            
+            # Fall back to legacy context filter
+            if not graph_context:
+                graph_context = self.context_filter.get_context_for_prompt(limit=10)
             
             # Determine which channel we're in
             if self.state == BotState.DISCUSSING and self.current_task:
@@ -473,8 +556,8 @@ class RoleBot:
             # Build prompt with anti-loop instruction and channel context
             prompt = f"""{task_context}
 
-相关对话：
-{context_text}
+对话历史：
+{graph_context}
 
 {message.author_name}：{message.content}
 
@@ -503,6 +586,15 @@ class RoleBot:
             ]
             
             response = await client.chat(messages)
+            
+            # Add reply to graph
+            mentions = self._extract_mentions(response.content)
+            await self._add_reply_to_graph(
+                message.channel_id if not self.current_task else self.current_task.target_channel,
+                response.content,
+                mentions
+            )
+            
             return response.content
             
         except Exception as e:
@@ -613,3 +705,73 @@ class RoleBot:
             "1477273291528867860": "兵部"
         }
         return channel_names.get(channel_id, f"频道({channel_id})")
+    
+    def _get_current_graph_id(self, channel_id: str) -> Optional[str]:
+        """Get the current graph ID for this bot."""
+        # If in a task, use task graph
+        if self.current_task:
+            return self.graph_manager.task_to_graph.get(self.current_task.task_id)
+        
+        # Otherwise use channel graph
+        return self.graph_manager.channel_to_graph.get(channel_id)
+    
+    def _find_parent_nodes(self, message: UnifiedMessage, graph_id: str) -> List[str]:
+        """Find parent nodes for a message (messages that mentioned this bot)."""
+        parent_ids = []
+        
+        graph = self.graph_manager.get_graph(graph_id)
+        if not graph:
+            return parent_ids
+        
+        # Find recent messages that mentioned this bot
+        for node_id, node in graph.nodes.items():
+            if self.bot_id in node.mention_targets:
+                # Check if recent (within last 10 messages)
+                parent_ids.append(node_id)
+        
+        # Limit to most recent 2 parents
+        if parent_ids:
+            # Sort by time
+            parent_nodes = [(pid, graph.nodes[pid]) for pid in parent_ids if pid in graph.nodes]
+            parent_nodes.sort(key=lambda x: x[1].timestamp, reverse=True)
+            parent_ids = [pid for pid, _ in parent_nodes[:2]]
+        
+        return parent_ids
+    
+    async def _add_reply_to_graph(self, channel_id: str, content: str, 
+                                  mentions: List[str]) -> Optional[MessageNode]:
+        """Add a reply message to the graph."""
+        try:
+            graph_id = self._get_current_graph_id(channel_id)
+            if not graph_id:
+                return None
+            
+            # Find the message we're replying to
+            original_node_id = self.current_node_id
+            
+            # Create reply node
+            node = self.graph_manager.create_reply_node(
+                original_message_id=original_node_id or "",
+                graph_id=graph_id,
+                sender_bot_id=self.bot_id,
+                sender_name=self.config.persona.name or self.bot_id,
+                content=content,
+                mentions=mentions,
+                channel_id=channel_id
+            )
+            
+            return node
+        except Exception as e:
+            logger.error(f"Error adding reply to graph: {e}")
+            return None
+    
+    def _extract_mentions(self, content: str) -> List[str]:
+        """Extract @ mentions from content."""
+        import re
+        mentions = []
+        # Match <@&role_id> format
+        for match in re.finditer(r'<@&(\d+)', content):
+            # Map role ID to bot ID
+            # This is a simplified version - should use config mapping
+            mentions.append(f"role_{match.group(1)}")
+        return mentions
