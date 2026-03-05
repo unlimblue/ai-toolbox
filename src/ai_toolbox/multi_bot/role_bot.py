@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import os
-from typing import List, Optional, Callable
+from typing import List, Optional, Callable, Dict
 
 import discord
 
@@ -11,6 +11,7 @@ from ..providers import create_provider
 from ..providers.base import ChatMessage
 from .models import UnifiedMessage, CrossChannelTask, BotState, BotConfig
 from .context_filter import ContextFilter, RelevanceScorer
+from .config_loader import get_config
 
 logger = logging.getLogger(__name__)
 
@@ -23,20 +24,26 @@ class RoleBot:
     - Responds to messages in allowed channels
     - Manages conversation context
     - Handles cross-channel tasks
+    - Has system architecture awareness
     """
     
-    def __init__(self, config: BotConfig):
+    def __init__(self, config: BotConfig, architecture_info: Dict = None):
         """
         Initialize Role Bot.
         
         Args:
             config: BotConfig with persona and settings
+            architecture_info: System architecture information for awareness
         """
         self.config = config
         self.bot_id = config.bot_id
         self.state = BotState.IDLE
         self.current_task: Optional[CrossChannelTask] = None
         self.max_context = 15
+        
+        # System architecture awareness
+        self.architecture_info = architecture_info or {}
+        self._parse_architecture_info()
         
         # Context management
         self.context_filter = ContextFilter(bot_id=self.bot_id, max_context=self.max_context)
@@ -54,6 +61,12 @@ class RoleBot:
         if not self.token:
             logger.warning(f"Token not found for bot {config.bot_id}: {config.token_env}")
     
+    def _parse_architecture_info(self):
+        """Parse architecture info for quick access."""
+        self.my_user_id = self.architecture_info.get('bot_user_id')
+        self.my_role_id = self.architecture_info.get('bot_role_id')
+        self.my_name = self.architecture_info.get('bot_name', self.bot_id)
+    
     def set_debug_sender(self, sender: Callable):
         """Set debug message sender callback."""
         self.debug_sender = sender
@@ -65,6 +78,54 @@ class RoleBot:
                 await self.debug_sender(f"[{self.bot_id}] {content}", data)
             except Exception as e:
                 logger.error(f"Failed to send debug message: {e}")
+    
+    def format_mention(self, target_bot_id: str) -> str:
+        """
+        Format a mention for target bot.
+        
+        Args:
+            target_bot_id: The bot_id to mention
+            
+        Returns:
+            Discord mention format string
+        """
+        config = get_config()
+        
+        # Priority 1: Use role mention (if available)
+        role_id = config.get_role_id_for_bot(target_bot_id)
+        if role_id:
+            return f"<@&{role_id}>"
+        
+        # Priority 2: Use user mention
+        user_id = config.get_user_id_for_bot(target_bot_id)
+        if user_id:
+            return f"<@{user_id}>"
+        
+        # Fallback: Use name
+        target_config = config.get_bot_config(target_bot_id)
+        return f"@{target_config.get('name', target_bot_id)}"
+    
+    def format_message_with_mentions(self, content: str, mentions: List[str] = None) -> str:
+        """
+        Format message content with proper mentions.
+        
+        Args:
+            content: Message content (can contain {bot_id} placeholders)
+            mentions: List of bot_ids to mention
+            
+        Returns:
+            Formatted message with Discord mention syntax
+        """
+        formatted = content
+        
+        # Replace {bot_id} placeholders with actual mentions
+        if mentions:
+            for bot_id in mentions:
+                mention_str = self.format_mention(bot_id)
+                placeholder = f"{{{bot_id}}}"
+                formatted = formatted.replace(placeholder, mention_str)
+        
+        return formatted
     
     async def connect(self):
         """
