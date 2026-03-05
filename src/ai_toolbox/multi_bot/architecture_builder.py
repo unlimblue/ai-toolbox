@@ -48,7 +48,6 @@ class PromptLoader:
             self.prompts_dir = Path(prompts_dir)
         
         self.base_dir = self.prompts_dir / "base"
-        self.roles_dir = self.prompts_dir / "roles"
         self.behaviors_dir = self.prompts_dir / "behaviors"
     
     def load_file(self, filename: str, subdir: str = "base") -> str:
@@ -119,16 +118,16 @@ class PromptLoader:
         
         return "\n\n".join(sections)
     
-    def build_role_prompt(self, bot_id: str, config: MultiBotConfig) -> str:
-        """Load role-specific prompt if exists."""
-        # Try to load role-specific file
-        role_file = f"{bot_id}.md"
-        role_content = self.load_file(role_file, subdir="roles")
+    def build_custom_instructions(self, bot_id: str, config: MultiBotConfig) -> str:
+        """Load custom instructions from config (config-driven roles)."""
+        bot = config.get_bot_config(bot_id)
+        persona = bot.get("persona", {})
         
-        if role_content:
-            # Substitute variables in role content too
-            bot = config.get_bot_config(bot_id)
-            persona = bot.get("persona", {})
+        # Get custom_instructions from config
+        custom = persona.get("custom_instructions", "")
+        
+        if custom:
+            # Substitute template variables
             variables = {
                 "bot_id": bot_id,
                 "bot_name": bot.get("name", bot_id),
@@ -138,7 +137,7 @@ class PromptLoader:
                 "persona_personality": persona.get("personality", ""),
                 "persona_speech_style": persona.get("speech_style", ""),
             }
-            return self.substitute_template(role_content, variables)
+            return self.substitute_template(custom, variables)
         
         return ""
     
@@ -196,10 +195,10 @@ class PromptLoader:
         if base:
             sections.append(base)
         
-        # 2. Role-specific prompt
-        role = self.build_role_prompt(bot_id, config)
-        if role:
-            sections.append(role)
+        # 2. Custom instructions from config (config-driven)
+        custom = self.build_custom_instructions(bot_id, config)
+        if custom:
+            sections.append(custom)
         
         # 3. Behavior configuration
         behavior = self.build_behavior_prompt(behavior_config)
