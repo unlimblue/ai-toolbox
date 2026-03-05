@@ -1,0 +1,32 @@
+[Unit]
+Description=Cyber Dynasty Multi-Bot Discord Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/.openclaw/workspace/ai-toolbox
+EnvironmentFile=/root/.openclaw/secrets/cyber_dynasty_tokens.env
+
+# Python path
+Environment="PYTHONPATH=/root/.openclaw/workspace/ai-toolbox/src"
+
+# Virtual environment Python
+ExecStart=/root/.openclaw/workspace/ai-toolbox/.venv/bin/python -m ai_toolbox.multi_bot.main
+
+# Restart policy
+Restart=always
+RestartSec=5
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=cyber-dynasty
+
+# Resource limits
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target
