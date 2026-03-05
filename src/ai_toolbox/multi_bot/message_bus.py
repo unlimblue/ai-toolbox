@@ -169,24 +169,40 @@ class MessageBus:
         - "@丞相 @太尉 去内阁商议"
         - "@丞相 到内阁讨论"
         """
+        from .config_loader import get_config
+        config = get_config()
+        
         content = message.content.lower()
         
         # Check for cross-channel keywords
         has_mention = "@" in message.content
         has_action = any(k in content for k in ["去", "到", "在"])
-        has_channel = any(k in content for k in ["内阁", "兵部", "金銮殿"])
         
-        if not (has_mention and has_action and has_channel):
+        # Get channel aliases from config
+        channel_aliases = {
+            "金銮殿": "jinluan",
+            "大殿": "jinluan",
+            "朝堂": "jinluan",
+            "内阁": "neige",
+            "议事厅": "neige",
+            "商议处": "neige",
+            "兵部": "bingbu",
+            "军事部": "bingbu",
+            "防务处": "bingbu",
+        }
+        
+        # Find which channel is mentioned
+        mentioned_channel = None
+        for alias, channel_key in channel_aliases.items():
+            if alias in content:
+                mentioned_channel = channel_key
+                break
+        
+        if not (has_mention and has_action and mentioned_channel):
             return None
         
-        # Extract target channel
-        target_channel_id = None
-        if "内阁" in content:
-            target_channel_id = "1477312823817277681"
-        elif "兵部" in content:
-            target_channel_id = "1477273291528867860"
-        elif "金銮殿" in content:
-            target_channel_id = "1478759781425745940"
+        # Resolve channel ID from config
+        target_channel_id = config.resolve_channel_id(mentioned_channel)
         
         if not target_channel_id or not message.mentions:
             return None

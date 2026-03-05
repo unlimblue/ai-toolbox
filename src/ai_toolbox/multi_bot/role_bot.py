@@ -424,30 +424,14 @@ class RoleBot:
             await self._send_debug("🔌 Connecting to Discord...")
             await self.connect()
         
-        # Confirm in source channel
-        logger.info(f"📤 Bot {self.bot_id} sending confirmation to source channel {task.source_channel}")
-        await self._send_debug(
-            "📤 Sending confirmation to source channel",
-            {"channel": task.source_channel}
-        )
-        await self.send_message(
-            task.source_channel,
-            "领旨，即刻去内阁商议。"
-        )
+        # Build task context for AI
+        source_channel_name = self._get_channel_name(task.source_channel)
+        target_channel_name = self._get_channel_name(task.target_channel)
         
-        # Start in target channel
-        logger.info(f"📤 Bot {self.bot_id} sending start message to target channel {task.target_channel}")
-        await self._send_debug(
-            "📤 Sending start message to target channel",
-            {"channel": task.target_channel}
-        )
-        
-        # Dynamic start message based on bot role
-        # Find the other bot(s) in the task
+        # Find other bots
         other_bots = [bid for bid in task.target_bots if bid != self.bot_id]
         other_bot_names = []
         for bid in other_bots:
-            # Try to get bot name from config
             try:
                 from .config_loader import get_config
                 config = get_config()
@@ -456,18 +440,81 @@ class RoleBot:
             except:
                 other_bot_names.append(bid)
         
-        if other_bot_names:
-            if len(other_bot_names) == 1:
-                start_msg = f"臣已至内阁，请{other_bot_names[0]}前来会合。"
-            else:
-                start_msg = f"臣已至内阁，请{'、'.join(other_bot_names)}前来会合。"
-        else:
-            start_msg = "臣已至内阁。"
+        # Generate confirmation message using AI
+        confirm_prompt = f"""你收到了皇帝的跨频道任务指令。
+
+任务信息：
+- 当前位置：{source_channel_name}
+- 目标位置：{target_channel_name}
+- 任务内容：{task.instruction}
+- 协作对象：{', '.join(other_bot_names) if other_bot_names else '无'}
+
+你需要：
+1. 先在当前位置（{source_channel_name}）回复皇帝，表示接受任务
+2. 然后前往目标位置（{target_channel_name}）与协作对象会合
+
+请生成第一句回复（表示接受任务）："""
         
-        await self.send_message(
-            task.target_channel,
-            start_msg
-        )
+        try:
+            api_key = os.getenv(self.config.api_key_env)
+            if api_key:
+                client = create_provider(
+                    self.config.model_provider,
+                    api_key=api_key,
+                    model=self.config.model_name
+                )
+                
+                messages = [
+                    ChatMessage(role="system", content=self.config.persona.system_prompt),
+                    ChatMessage(role="user", content=confirm_prompt)
+                ]
+                
+                response = await client.chat(messages)
+                confirm_msg = response.content.strip()
+                
+                # Send confirmation to source channel
+                logger.info(f"📤 Bot {self.bot_id} sending AI-generated confirmation")
+                await self.send_message(task.source_channel, confirm_msg)
+        except Exception as e:
+            logger.error(f"Error generating confirmation: {e}")
+            # Fallback to simple message
+            await self.send_message(
+                task.source_channel,
+                f"领旨，即刻去{target_channel_name}。"
+            )
+        
+        # Generate start message for target channel
+        start_prompt = f"""你已到达目标位置，需要与协作对象会合。
+
+当前情况：
+- 当前位置：{target_channel_name}
+- 来自：{source_channel_name}
+- 任务：{task.instruction}
+- 需要会合的对象：{', '.join(other_bot_names) if other_bot_names else '无'}
+
+请生成到达后的第一句话（自然、简洁，召集协作对象）："""
+        
+        try:
+            if api_key:
+                messages = [
+                    ChatMessage(role="system", content=self.config.persona.system_prompt),
+                    ChatMessage(role="user", content=start_prompt)
+                ]
+                
+                response = await client.chat(messages)
+                start_msg = response.content.strip()
+                
+                # Send to target channel
+                logger.info(f"📤 Bot {self.bot_id} sending AI-generated start message")
+                await self.send_message(task.target_channel, start_msg)
+        except Exception as e:
+            logger.error(f"Error generating start message: {e}")
+            # Fallback
+            if other_bot_names:
+                await self.send_message(
+                    task.target_channel,
+                    f"臣已至{target_channel_name}，请{other_bot_names[0]}前来会合。"
+                )
     
     def _is_relevant(self, message: UnifiedMessage) -> bool:
         """Check if message is relevant to this bot."""
@@ -624,22 +671,47 @@ class RoleBot:
             return None
     
     async def _form_conclusion(self):
-        """Form conclusion and report back."""
+        """Form conclusion and report back using AI."""
         if not self.current_task:
             return
         
         self.state = BotState.REPORTING
         
         try:
-            # Generate conclusion using context
+            # Get context
+            source_channel_name = self._get_channel_name(self.current_task.source_channel)
+            target_channel_name = self._get_channel_name(self.current_task.target_channel)
+            
+            # Get discussion context
             discussion = self.context_filter.get_context_for_prompt(limit=20)
             
-            prompt = f"""基于以下讨论，形成简洁结论：
+            # Get graph context if available
+            graph_context = ""
+            if self.current_graph_id:
+                subgraph = self.graph_manager.extract_subgraph(
+                    self.current_graph_id, self.bot_id, max_depth=15
+                )
+                if subgraph:
+                    graph_context = subgraph.get_linear_history()
+            
+            # Combine contexts
+            full_context = graph_context if graph_context else discussion
+            
+            # Build prompt for conclusion
+            prompt = f"""你已完成跨频道任务，需要向皇帝汇报。
+
+任务信息：
+- 原位置：{source_channel_name}
+- 讨论位置：{target_channel_name}
+- 任务指令：{self.current_task.instruction}
 
 讨论记录：
-{discussion}
+{full_context}
 
-请用一句话总结结论："""
+请生成给皇帝的汇报消息：
+1. 简要说明已完成任务
+2. 总结讨论结果（简洁明了）
+3. 如有结论，清晰陈述"""
             
             api_key = os.getenv(self.config.api_key_env)
             client = create_provider(
@@ -648,18 +720,29 @@ class RoleBot:
                 model=self.config.model_name
             )
             
-            messages = [ChatMessage(role="user", content=prompt)]
+            messages = [
+                ChatMessage(role="system", content=self.config.persona.system_prompt),
+                ChatMessage(role="user", content=prompt)
+            ]
+            
             response = await client.chat(messages)
-            conclusion = response.content
+            report_msg = response.content.strip()
             
             # Report back to source channel
             await self.send_message(
                 self.current_task.source_channel,
-                f"启禀陛下，臣等已在内阁商议完毕。\n\n结论：{conclusion}"
+                report_msg
             )
             
         except Exception as e:
             logger.error(f"Error forming conclusion: {e}")
+            # Fallback to simple message
+            if self.current_task:
+                target_channel_name = self._get_channel_name(self.current_task.target_channel)
+                await self.send_message(
+                    self.current_task.source_channel,
+                    f"启禀陛下，臣等已在{target_channel_name}商议完毕。"
+                )
         
         finally:
             # Reset state
