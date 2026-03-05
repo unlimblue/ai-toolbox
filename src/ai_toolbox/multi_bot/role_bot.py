@@ -441,10 +441,32 @@ class RoleBot:
             "📤 Sending start message to target channel",
             {"channel": task.target_channel}
         )
-        # Simplified start message without redundant instruction repetition
+        
+        # Dynamic start message based on bot role
+        # Find the other bot(s) in the task
+        other_bots = [bid for bid in task.target_bots if bid != self.bot_id]
+        other_bot_names = []
+        for bid in other_bots:
+            # Try to get bot name from config
+            try:
+                from .config_loader import get_config
+                config = get_config()
+                bot_config = config.get_bot_config(bid)
+                other_bot_names.append(bot_config.get('name', bid))
+            except:
+                other_bot_names.append(bid)
+        
+        if other_bot_names:
+            if len(other_bot_names) == 1:
+                start_msg = f"臣已至内阁，请{other_bot_names[0]}前来会合。"
+            else:
+                start_msg = f"臣已至内阁，请{'、'.join(other_bot_names)}前来会合。"
+        else:
+            start_msg = "臣已至内阁。"
+        
         await self.send_message(
             task.target_channel,
-            "臣已至内阁，请太尉前来会合。"
+            start_msg
         )
     
     def _is_relevant(self, message: UnifiedMessage) -> bool:
