@@ -1,0 +1,44 @@
+2026-03-05 06:10:54,957 - __main__ - INFO - Loaded environment from /root/.openclaw/secrets/cyber_dynasty_tokens.env
+2026-03-05 06:10:54,965 - __main__ - INFO - Loaded configuration from config/multi_bot.yaml
+2026-03-05 06:10:54,965 - __main__ - INFO - Organization: 赛博王朝
+2026-03-05 06:10:54,965 - __main__ - INFO - All required environment variables found
+2026-03-05 06:10:54,965 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: chengxiang
+2026-03-05 06:10:54,965 - __main__ - INFO - Created and registered bot: chengxiang
+2026-03-05 06:10:54,965 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: taiwei
+2026-03-05 06:10:54,965 - __main__ - INFO - Created and registered bot: taiwei
+2026-03-05 06:10:54,966 - discord.client - WARNING - PyNaCl is not installed, voice will NOT be supported
+2026-03-05 06:10:54,966 - discord.client - WARNING - davey is not installed, voice will NOT be supported
+2026-03-05 06:10:54,966 - __main__ - INFO - Debug mode enabled
+2026-03-05 06:10:54,966 - __main__ - INFO - Connecting all bots...
+2026-03-05 06:10:54,966 - __main__ - INFO - Started connection task for bot: chengxiang
+2026-03-05 06:10:54,966 - __main__ - INFO - Started connection task for bot: taiwei
+2026-03-05 06:10:54,966 - __main__ - INFO - Waiting for bots to connect...
+2026-03-05 06:10:54,966 - discord.client - INFO - logging in using static token
+2026-03-05 06:10:54,969 - discord.client - INFO - logging in using static token
+2026-03-05 06:10:55,862 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: 1ef2c6f6b7895c0ea0c2fbf6dee9e40c).
+2026-03-05 06:10:56,082 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: ff5c18b5bad6b94e69ac2abd12e3b412).
+2026-03-05 06:10:57,891 - ai_toolbox.multi_bot.role_bot - INFO - Bot taiwei logged in as 太尉#8473
+2026-03-05 06:10:57,969 - __main__ - INFO - Connected bots: 2/2
+2026-03-05 06:10:57,969 - __main__ - INFO - Starting 赛博王朝 System...
+2026-03-05 06:10:57,969 - ai_toolbox.multi_bot.hub_listener - INFO - Starting Hub Listener...
+2026-03-05 06:10:57,969 - discord.client - INFO - logging in using static token
+2026-03-05 06:10:58,084 - ai_toolbox.multi_bot.role_bot - INFO - Bot chengxiang logged in as 丞相#9289
+2026-03-05 06:10:58,845 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: e729c5571b5252d1c18a344cb2fe2f99).
+2026-03-05 06:11:00,848 - ai_toolbox.multi_bot.hub_listener - INFO - Hub Bot logged in as 赛博王朝Hub#5263
+2026-03-05 06:11:00,848 - ai_toolbox.multi_bot.hub_listener - INFO - Monitoring 1 guild(s)
+2026-03-05 06:11:01,299 - ai_toolbox.multi_bot.hub_listener - INFO -   - 赛博王朝 (1477272575406112832)
+2026-03-05 06:11:01,299 - ai_toolbox.multi_bot.hub_listener - INFO -     Channels: 兵部, 内阁, 金銮殿
+2026-03-05 06:13:36,797 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #金銮殿: <@1477314385713037445> 在内阁数 1 2 3 ，然后回金銮殿回复4...
+2026-03-05 06:13:36,797 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 06:13:37,021 - ai_toolbox.multi_bot.message_bus - INFO - 🎯 Created cross-channel task: eaf7e652-2b48-44f0-a73c-7b834b037499
+2026-03-05 06:13:37,248 - ai_toolbox.multi_bot.message_bus - INFO - 📋 Notifying bot chengxiang of task
+2026-03-05 06:13:37,437 - ai_toolbox.multi_bot.role_bot - INFO - 🤖 Bot chengxiang handling task: eaf7e652-2b48-44f0-a73c-7b834b037499
+2026-03-05 06:13:41,797 - ai_toolbox.multi_bot.role_bot - INFO - 📤 Bot chengxiang sending confirmation to source channel 1478759781425745940
+2026-03-05 06:13:42,360 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1478759781425745940: 领旨，即刻去内阁商议。...
+2026-03-05 06:13:42,628 - ai_toolbox.multi_bot.role_bot - INFO - 📤 Bot chengxiang sending start message to target channel 1477312823817277681
+2026-03-05 06:13:43,235 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1477312823817277681: 奉陛下旨意，来此商议：<@14773143857130374...
+2026-03-05 06:13:54,195 - ai_toolbox.multi_bot.role_bot - ERROR - API key not found: sk-kimi-JrSlIhbpaT8f6Cid2cuA10f2T9TpyOgcUzFcHpJfUeOuAQhuM6xNiIgcfZiO5A62
+2026-03-05 06:16:01,505 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 阶段2，有一个问题，当前bot其实不知道自己的ID是什...
+2026-03-05 06:16:01,505 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 06:21:45,098 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 开始实施，并做好测试工作。...
+2026-03-05 06:21:45,098 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus

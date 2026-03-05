@@ -1,0 +1,17 @@
+2026-03-05 03:46:44,649 - __main__ - INFO - Loaded environment from /root/.openclaw/secrets/cyber_dynasty_tokens.env
+2026-03-05 03:46:44,649 - __main__ - INFO - All required environment variables found
+2026-03-05 03:46:44,649 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: chengxiang
+2026-03-05 03:46:44,649 - __main__ - INFO - Created and registered bot: chengxiang
+2026-03-05 03:46:44,649 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: taiwei
+2026-03-05 03:46:44,649 - __main__ - INFO - Created and registered bot: taiwei
+2026-03-05 03:46:44,650 - discord.client - WARNING - PyNaCl is not installed, voice will NOT be supported
+2026-03-05 03:46:44,650 - discord.client - WARNING - davey is not installed, voice will NOT be supported
+2026-03-05 03:46:44,650 - __main__ - INFO - Starting Cyber Dynasty Multi-Bot System...
+2026-03-05 03:46:44,650 - ai_toolbox.multi_bot.hub_listener - INFO - Starting Hub Listener...
+2026-03-05 03:46:44,650 - discord.client - INFO - logging in using static token
+2026-03-05 03:46:45,645 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: 8e61dabe9e0585298186886ee6e114f0).
+2026-03-05 03:46:47,648 - ai_toolbox.multi_bot.hub_listener - INFO - Hub Bot logged in as 赛博王朝Hub#5263
+2026-03-05 03:46:47,649 - ai_toolbox.multi_bot.hub_listener - INFO - Monitoring 1 guild(s)
+2026-03-05 03:46:47,649 - ai_toolbox.multi_bot.hub_listener - INFO -   - 赛博王朝 (1477272575406112832)
+2026-03-05 03:46:47,649 - ai_toolbox.multi_bot.hub_listener - INFO -     Channels: 兵部, 内阁, 金銮殿
+2026-03-05 03:55:27,735 - ai_toolbox.multi_bot.message_bus - INFO - Created cross-channel task: 48adb290-18d8-4ac8-930f-8777c9316fe0

@@ -1,0 +1,69 @@
+2026-03-05 05:28:07,720 - __main__ - INFO - Loaded environment from /root/.openclaw/secrets/cyber_dynasty_tokens.env
+2026-03-05 05:28:07,721 - __main__ - INFO - All required environment variables found
+2026-03-05 05:28:07,721 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: chengxiang
+2026-03-05 05:28:07,721 - __main__ - INFO - Created and registered bot: chengxiang
+2026-03-05 05:28:07,721 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: taiwei
+2026-03-05 05:28:07,721 - __main__ - INFO - Created and registered bot: taiwei
+2026-03-05 05:28:07,721 - discord.client - WARNING - PyNaCl is not installed, voice will NOT be supported
+2026-03-05 05:28:07,721 - discord.client - WARNING - davey is not installed, voice will NOT be supported
+2026-03-05 05:28:07,721 - __main__ - INFO - Connecting all bots...
+2026-03-05 05:28:07,721 - __main__ - INFO - Started connection task for bot: chengxiang
+2026-03-05 05:28:07,721 - __main__ - INFO - Started connection task for bot: taiwei
+2026-03-05 05:28:07,721 - __main__ - INFO - Waiting for bots to connect...
+2026-03-05 05:28:07,722 - discord.client - INFO - logging in using static token
+2026-03-05 05:28:07,725 - discord.client - INFO - logging in using static token
+2026-03-05 05:28:08,497 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: ee586bf5f0e71ca92232b3e67cf7a336).
+2026-03-05 05:28:08,522 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: 8a7afee9e8c8fab3f85b1b946484c28d).
+2026-03-05 05:28:10,499 - ai_toolbox.multi_bot.role_bot - INFO - Bot chengxiang logged in as 丞相#9289
+2026-03-05 05:28:10,524 - ai_toolbox.multi_bot.role_bot - INFO - Bot taiwei logged in as 太尉#8473
+2026-03-05 05:28:10,722 - __main__ - INFO - Connected bots: 2/2
+2026-03-05 05:28:10,722 - __main__ - INFO - Starting Cyber Dynasty Multi-Bot System...
+2026-03-05 05:28:10,722 - ai_toolbox.multi_bot.hub_listener - INFO - Starting Hub Listener...
+2026-03-05 05:28:10,722 - discord.client - INFO - logging in using static token
+2026-03-05 05:28:11,814 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: 1a5510bbfcc96872453cdba1865cfeff).
+2026-03-05 05:28:13,834 - ai_toolbox.multi_bot.hub_listener - INFO - Hub Bot logged in as 赛博王朝Hub#5263
+2026-03-05 05:28:13,834 - ai_toolbox.multi_bot.hub_listener - INFO - Monitoring 1 guild(s)
+2026-03-05 05:28:14,274 - ai_toolbox.multi_bot.hub_listener - INFO -   - 赛博王朝 (1477272575406112832)
+2026-03-05 05:28:14,274 - ai_toolbox.multi_bot.hub_listener - INFO -     Channels: 兵部, 内阁, 金銮殿
+2026-03-05 05:30:03,020 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #金銮殿: <@&1477314769764614239> <@&1478217215936430092> 在内...
+2026-03-05 05:30:03,021 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 05:30:03,341 - ai_toolbox.multi_bot.message_bus - INFO - 🎯 Created cross-channel task: 994926ae-6fe4-4902-8ede-20ab751701bb
+2026-03-05 05:30:03,635 - ai_toolbox.multi_bot.message_bus - INFO - 📋 Notifying bot taiwei of task
+2026-03-05 05:30:03,838 - ai_toolbox.multi_bot.role_bot - INFO - 🤖 Bot taiwei handling task: 994926ae-6fe4-4902-8ede-20ab751701bb
+2026-03-05 05:30:04,039 - ai_toolbox.multi_bot.role_bot - INFO - 📤 Bot taiwei sending confirmation to source channel 1478759781425745940
+2026-03-05 05:30:09,317 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot taiwei sent message to channel 1478759781425745940: 领旨，即刻去内阁商议。...
+2026-03-05 05:30:09,772 - ai_toolbox.multi_bot.role_bot - INFO - 📤 Bot taiwei sending start message to target channel 1477312823817277681
+2026-03-05 05:30:10,253 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot taiwei sent message to channel 1477312823817277681: 奉陛下旨意，来此商议：<@&1477314769764614...
+2026-03-05 05:30:10,473 - ai_toolbox.multi_bot.message_bus - INFO - 📋 Notifying bot chengxiang of task
+2026-03-05 05:30:10,899 - ai_toolbox.multi_bot.role_bot - INFO - 🤖 Bot chengxiang handling task: 994926ae-6fe4-4902-8ede-20ab751701bb
+2026-03-05 05:30:11,117 - ai_toolbox.multi_bot.role_bot - INFO - 📤 Bot chengxiang sending confirmation to source channel 1478759781425745940
+2026-03-05 05:30:15,912 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1478759781425745940: 领旨，即刻去内阁商议。...
+2026-03-05 05:30:17,654 - ai_toolbox.multi_bot.role_bot - INFO - 📤 Bot chengxiang sending start message to target channel 1477312823817277681
+2026-03-05 05:30:18,173 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1477312823817277681: 奉陛下旨意，来此商议：<@&1477314769764614...
+2026-03-05 05:30:28,133 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7a20c3d6ff80>
+2026-03-05 05:30:28,134 - asyncio - ERROR - Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x7a20c3d15490>, 432877.833766296)])']
+connector: <aiohttp.connector.TCPConnector object at 0x7a20c5322570>
+2026-03-05 05:30:28,553 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot taiwei sent message to channel 1478759781425745940: 臣在。已收到陛下指令。
+
+即刻查验两位大臣状态，确认其是否成...
+2026-03-05 05:30:39,174 - asyncio - ERROR - Unclosed client session
+client_session: <aiohttp.client.ClientSession object at 0x7a20c3d6d700>
+2026-03-05 05:30:39,174 - asyncio - ERROR - Unclosed connector
+connections: ['deque([(<aiohttp.client_proto.ResponseHandler object at 0x7a20c3d16e10>, 432888.874570378)])']
+connector: <aiohttp.connector.TCPConnector object at 0x7a20c3d6fc80>
+2026-03-05 05:30:39,706 - ai_toolbox.multi_bot.role_bot - INFO - ✅ Bot chengxiang sent message to channel 1478759781425745940: 启禀陛下，臣已阅此令。
+
+然臣需澄清一事：臣为丞相，乃内阁之...
+2026-03-05 05:39:38,586 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 目前来看基础功能成功了，首先对当前状态设置为存档点（d...
+2026-03-05 05:39:38,586 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 05:45:56,150 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 大方向正确，注意：
+1. bot自主出发at时候的格式...
+2026-03-05 05:45:56,151 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 05:52:39,007 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 实施第一阶段...
+2026-03-05 05:52:39,007 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 06:05:08,295 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 汇报进展...
+2026-03-05 06:05:08,296 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 06:07:22,066 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 继续完成第一阶段，并启动测试环境...
+2026-03-05 06:07:22,066 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus

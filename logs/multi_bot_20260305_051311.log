@@ -1,0 +1,33 @@
+2026-03-05 05:13:11,946 - __main__ - INFO - Loaded environment from /root/.openclaw/secrets/cyber_dynasty_tokens.env
+2026-03-05 05:13:11,946 - __main__ - INFO - All required environment variables found
+2026-03-05 05:13:11,947 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: chengxiang
+2026-03-05 05:13:11,947 - __main__ - INFO - Created and registered bot: chengxiang
+2026-03-05 05:13:11,947 - ai_toolbox.multi_bot.message_bus - INFO - Registered bot: taiwei
+2026-03-05 05:13:11,947 - __main__ - INFO - Created and registered bot: taiwei
+2026-03-05 05:13:11,947 - discord.client - WARNING - PyNaCl is not installed, voice will NOT be supported
+2026-03-05 05:13:11,947 - discord.client - WARNING - davey is not installed, voice will NOT be supported
+2026-03-05 05:13:11,947 - __main__ - INFO - Connecting all bots...
+2026-03-05 05:13:11,947 - __main__ - INFO - Started connection task for bot: chengxiang
+2026-03-05 05:13:11,947 - __main__ - INFO - Started connection task for bot: taiwei
+2026-03-05 05:13:11,947 - __main__ - INFO - Waiting for bots to connect...
+2026-03-05 05:13:11,948 - discord.client - INFO - logging in using static token
+2026-03-05 05:13:11,954 - discord.client - INFO - logging in using static token
+2026-03-05 05:13:13,033 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: 18876bc6feef3652387bb9c877e3b468).
+2026-03-05 05:13:14,238 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: c29f89b99ffbe6457bf08f6fb49b1497).
+2026-03-05 05:13:14,948 - __main__ - INFO - Connected bots: 2/2
+2026-03-05 05:13:14,948 - __main__ - INFO - Starting Cyber Dynasty Multi-Bot System...
+2026-03-05 05:13:14,948 - ai_toolbox.multi_bot.hub_listener - INFO - Starting Hub Listener...
+2026-03-05 05:13:14,948 - discord.client - INFO - logging in using static token
+2026-03-05 05:13:15,038 - ai_toolbox.multi_bot.role_bot - INFO - Bot taiwei logged in as 太尉#8473
+2026-03-05 05:13:15,780 - discord.gateway - INFO - Shard ID None has connected to Gateway (Session ID: 24fdd555e44392b28890d13a02ea0953).
+2026-03-05 05:13:16,240 - ai_toolbox.multi_bot.role_bot - INFO - Bot chengxiang logged in as 丞相#9289
+2026-03-05 05:13:17,782 - ai_toolbox.multi_bot.hub_listener - INFO - Hub Bot logged in as 赛博王朝Hub#5263
+2026-03-05 05:13:17,782 - ai_toolbox.multi_bot.hub_listener - INFO - Monitoring 1 guild(s)
+2026-03-05 05:13:18,002 - ai_toolbox.multi_bot.hub_listener - INFO -   - 赛博王朝 (1477272575406112832)
+2026-03-05 05:13:18,002 - ai_toolbox.multi_bot.hub_listener - INFO -     Channels: 兵部, 内阁, 金銮殿
+2026-03-05 05:14:54,686 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #金銮殿: <@&1477314769764614239> <@&1478217215936430092> 在内...
+2026-03-05 05:14:54,686 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 05:19:33,921 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 我在金銮殿at 丞相和太尉，令其在内阁中相互问候，并汇...
+2026-03-05 05:19:33,922 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus
+2026-03-05 05:22:11,507 - ai_toolbox.multi_bot.hub_listener - INFO - 📨 Received message from unlimblue in #内阁: <@1477299597637582878> 角色ID的转换应该是discord的客户端自动完成的，...
+2026-03-05 05:22:11,507 - ai_toolbox.multi_bot.message_bus - INFO - 📤 Publishing message from unlimblue to bus

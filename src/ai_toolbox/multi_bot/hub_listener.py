@@ -116,7 +116,7 @@ class HubListener:
         @self.client.event
         async def on_message(message: discord.Message):
             """Called when a message is received."""
-            # Ignore own messages
+            # Ignore own messages (Hub Bot itself)
             if message.author.id == self.client.user.id:
                 return
             
@@ -124,10 +124,27 @@ class HubListener:
             if str(message.author.id) == DEBUG_AUTHOR_ID:
                 return
             
-            # Ignore other bots (optional, can be configured)
+            # Process bot messages if they contain mentions (for multi-bot conversation)
+            # But skip if it's a Role Bot message without mentions (normal responses)
             if message.author.bot:
-                logger.debug(f"Ignoring bot message from {message.author.name}")
-                return
+                # Check if bot message has mentions to other bots
+                has_bot_mentions = False
+                for mention in message.mentions:
+                    if mention.bot and mention.id != message.author.id:
+                        has_bot_mentions = True
+                        break
+                
+                # Also check role mentions
+                for role in message.role_mentions:
+                    if str(role.id) in ROLE_ID_TO_BOT_ID:
+                        has_bot_mentions = True
+                        break
+                
+                if not has_bot_mentions:
+                    logger.debug(f"Ignoring bot message without mentions from {message.author.name}")
+                    return
+                
+                logger.debug(f"Processing bot message with mentions from {message.author.name}")
             
             try:
                 # Debug: Log received message
