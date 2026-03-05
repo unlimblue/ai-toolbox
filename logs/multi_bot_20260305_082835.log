@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/root/.openclaw/workspace/ai-toolbox/src/ai_toolbox/multi_bot/main.py", line 14, in <module>
+    from .architecture_builder import format_system_prompt
+ImportError: cannot import name 'format_system_prompt' from 'ai_toolbox.multi_bot.architecture_builder' (/root/.openclaw/workspace/ai-toolbox/src/ai_toolbox/multi_bot/architecture_builder.py). Did you mean: 'build_system_prompt'?

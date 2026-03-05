@@ -11,7 +11,7 @@ from .hub_listener import HubListener, discord_message_to_unified
 from .message_bus import MessageBus
 from .role_bot import RoleBot
 from .config_loader import MultiBotConfig, get_config
-from .architecture_builder import format_system_prompt
+from .architecture_builder import build_system_prompt
 from .models import BotConfig, BotPersona
 
 logging.basicConfig(
@@ -35,7 +35,7 @@ def create_bot_from_config(bot_id: str, config: MultiBotConfig) -> RoleBot:
     bot_config_dict = config.get_bot_config(bot_id)
     
     # Build system prompt with architecture awareness
-    system_prompt = format_system_prompt(bot_id, config, context="")
+    system_prompt = build_system_prompt(bot_id, config, context="")
     
     # Create BotConfig
     persona = BotPersona(
