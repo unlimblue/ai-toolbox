@@ -299,6 +299,9 @@ class RoleBot:
     
     async def send_message(self, channel_id: str, content: str):
         """Send message to a channel."""
+        # Convert [AT] to @ symbol before sending
+        content = content.replace("[AT]", "@")
+        
         if not self._connected:
             await self.connect()
         
