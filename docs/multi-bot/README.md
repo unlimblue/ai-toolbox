@@ -1,37 +1,51 @@
-# Multi-Bot System Documentation
+# 多 Bot 系统文档
 
-赛博王朝多 Bot 持续对话系统文档。
-
----
-
-## 文档列表
-
-| 文档 | 说明 | 目标读者 |
-|------|------|----------|
-| [design.md](design.md) | 系统设计方案 | 开发者、架构师 |
-| [deployment.md](deployment.md) | 部署指南 | 运维人员、用户 |
-| [testing.md](testing.md) | 测试指南 | QA、开发者 |
-| [debug.md](debug.md) | 调试模式说明 | 开发者、运维 |
-| [research.md](research.md) | 调研报告 | 产品经理、架构师 |
+**Multi-Bot System** - AI-Toolbox 核心组件
 
 ---
 
-## 快速开始
+## 概述
 
-1. **部署系统**: 阅读 [deployment.md](deployment.md)
-2. **测试验证**: 阅读 [testing.md](testing.md)
-3. **了解架构**: 阅读 [design.md](design.md)
+多 Bot 系统是 AI-Toolbox 的核心，实现多个 AI Bot 在 Discord 中自主协作。
+
+### 核心能力
+
+```mermaid
+mindmap
+  root((多Bot系统))
+    自主决策
+      AI理解指令
+      自主选择频道
+      自主@对象
+    上下文管理
+      ContextGraph存储
+      自动可见性
+      跨频道连贯
+    配置驱动
+      YAML定义角色
+      无需代码修改
+      动态加载
+```
 
 ---
 
-## 系统概述
+## 模块文档
 
-**多 Bot 持续对话系统** 实现了：
-- 丞相、太尉两个 AI 角色的跨频道协调
-- 三层架构：Hub Listener + Message Bus + Role Bot
-- 跨频道任务：金銮殿 → 内阁 → 金銮殿
-- 智能上下文过滤
+| 文档 | 内容 |
+|------|------|
+| [设计文档](design.md) | 架构设计详情 |
+| [部署文档](deployment.md) | 部署和配置 |
+| [测试文档](testing.md) | 测试用例和方法 |
+| [调试文档](debug.md) | 问题排查 |
 
 ---
 
-*详见各文档具体内容*
+## 快速链接
+
+- **配置示例**: `config/multi_bot.yaml`
+- **脚本**: `scripts/multi_bot.sh`
+- **源代码**: `src/ai_toolbox/multi_bot/`
+
+---
+
+*Multi-Bot System 文档*
