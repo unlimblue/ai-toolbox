@@ -455,10 +455,214 @@ flowchart LR
 
 ---
 
+## 🧠 长期 Memory 机制
+
+### 设计哲学
+
+> **不是所有人都需要看到所有记忆** —— 根据角色、场景决定可见范围
+
+Memory 分层设计遵循"按需可见性"原则，避免信息过载和隐私泄露。
+
+### Memory 分层架构
+
+```mermaid
+flowchart TB
+    subgraph MemoryArchitecture["🧠 Memory 分层架构"]
+        direction TB
+        
+        subgraph Session["⚡ Session Memory (短期)"]
+            S1["ContextGraph
+            <span style='font-size:10px'>• 消息DAG</span>
+            <span style='font-size:10px'>• 自动维护</span>
+            <span style='font-size:10px'>• 频道内可见</span>"]
+        end
+        
+        subgraph Channel["📺 Channel Memory (频道级)"]
+            C1["memory/channels/{id}.md
+            <span style='font-size:10px'>• 频道约定</span>
+            <span style='font-size:10px'>• 重要决策</span>
+            <span style='font-size:10px'>• 该频道Bot可见</span>"]
+        end
+        
+        subgraph BotMemory["🤖 Bot Memory (角色级)"]
+            B1["memory/bots/{id}.md
+            <span style='font-size:10px'>• 个人技能</span>
+            <span style='font-size:10px'>• 偏好设置</span>
+            <span style='font-size:10px'>• 仅自己可见</span>"]
+        end
+        
+        subgraph OrgMemory["🏛️ Organization Memory (组织级)"]
+            O1["memory/organizations/{id}.md
+            <span style='font-size:10px'>• 组织架构</span>
+            <span style='font-size:10px'>• 运作规则</span>
+            <span style='font-size:10px'>• 同组织Bot可见</span>"]
+        end
+        
+        subgraph UserMemory["👤 User Memory (用户级)"]
+            U1["memory/users/{id}.md
+            <span style='font-size:10px'>• 用户偏好</span>
+            <span style='font-size:10px'>• 交互历史</span>
+            <span style='font-size:10px'>• 该用户交互时可见</span>"]
+        end
+    end
+    
+    Session -->|"自动摘要"| Channel
+    Channel -->|"定期整理"| OrgMemory
+    BotMemory -->|"自学习"| BotMemory
+    UserMemory -->|"个性化"| Session
+```
+
+### Memory 访问控制矩阵
+
+| Memory 类型 | 存储位置 | 可见范围 | 写入触发 |
+|------------|---------|---------|---------|
+| **Session** | ContextGraph | 同频道参与者 | 自动维护 |
+| **Channel** | `memory/channels/` | 该频道所有Bot | Bot决策 / Heartbeat |
+| **Bot** | `memory/bots/` | 仅该Bot自己 | Bot自学习 |
+| **Organization** | `memory/organizations/` | 同组织所有Bot | 重大事件 |
+| **User** | `memory/users/` | 与该用户交互时 | 交互中积累 |
+
+### 何时写入 Memory
+
+```mermaid
+flowchart TD
+    Start(["收到信息"]) --> Important{"是否重要?"}
+    
+    Important -->|是| SelectType["选择 Memory 类型"]
+    Important -->|否| Discard[丢弃]
+    
+    SelectType --> Channel{频道相关?}
+    Channel -->|是| WriteChannel["写入 Channel Memory"]
+    
+    Channel -->|否| Personal{个人学习?}
+    Personal -->|是| WriteBot["写入 Bot Memory"]
+    
+    Personal -->|否| Org{组织相关?}
+    Org -->|是| WriteOrg["写入 Organization Memory"]
+    
+    Org -->|否| UserRel{用户相关?}
+    UserRel -->|是| WriteUser["写入 User Memory"]
+    
+    WriteChannel --> Confirm[确认写入]
+    WriteBot --> Confirm
+    WriteOrg --> Confirm
+    WriteUser --> Confirm
+```
+
+### Memory 写入触发条件
+
+| 触发类型 | 条件 | 示例 |
+|---------|------|------|
+| **用户指令** | 用户明确说"记住" | "记住我偏好简洁回答" |
+| **重要决策** | 达成组织级决策 | "采用 v2.0 架构" |
+| **Bot 自学习** | 发现有效规则 | "[AT]在句末最有效" |
+| **任务完成** | 自动总结 | 任务结束后写入要点 |
+| **Heartbeat** | 定期维护 | 每日回顾整理 |
+| **Compaction** | 上下文压缩 | Session结束时总结 |
+
+### Memory 使用流程
+
+#### 读取 Memory
+
+```mermaid
+sequenceDiagram
+    participant Bot as Bot
+    participant System as SYSTEM_PROMPT
+    participant Memory as Memory Files
+    
+    Note over Bot,Memory: Session 启动时
+    Bot->>System: 加载导航目录
+    System->>Bot: 指引加载 Memory
+    
+    Bot->>Memory: 读取 Organization Memory
+    Memory->>Bot: 组织架构、规则
+    
+    Bot->>Memory: 读取 Channel Memory
+    Memory->>Bot: 频道约定
+    
+    Bot->>Memory: 读取 Bot Memory (自己)
+    Memory->>Bot: 个人技能、偏好
+    
+    Note over Bot: 内化信息
+```
+
+#### 写入 Memory
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Bot as Bot
+    participant Memory as Memory File
+    
+    User->>Bot: "记住此事"
+    
+    Note over Bot: 决策：写入<br/>Channel Memory
+    
+    Bot->>Bot: 格式化内容
+    Note right of Bot: 时间戳、主题、<br/>内容、后续行动
+    
+    Bot->>Memory: Append 写入
+    Note right of Memory: 追加模式<br/>不覆盖历史
+    
+    Bot->>User: "臣已记住"
+```
+
+### Memory 格式规范
+
+```markdown
+## 2026-03-06 14:30 - 用户偏好记录
+
+**来源**: 皇帝陛下直接指示
+**重要性**: ⭐⭐⭐⭐⭐
+**Memory 类型**: User + Channel
+
+**内容**:
+陛下偏好简洁的回答格式，不喜欢冗余的开场白。
+直接给出结论，必要时补充简要说明。
+
+**后续行动**:
+- [x] 调整回应风格，去除冗余
+- [ ] 观察陛下反馈，持续优化
+```
+
+### 在 SYSTEM_PROMPT 中的导航
+
+```markdown
+## Memory 导航
+
+### 通用加载（所有场景）
+- 组织级: `memory/organizations/cyber_dynasty.md`
+
+### 场景特定加载
+{% if scene == "channel_conversation" %}
+- 频道级: `memory/channels/{{channel_id}}.md`
+{% endif %}
+
+{% if scene == "user_interaction" %}
+- 用户级: `memory/users/{{user_id}}.md`
+{% endif %}
+
+### 角色特定加载（仅自己）
+- 角色级: `memory/bots/{{bot_id}}.md`
+```
+
+### 与 OpenClaw Memory 的对比
+
+| 特性 | OpenClaw | 赛博王朝 Multi-Bot |
+|------|----------|-------------------|
+| **个人 Memory** | `MEMORY.md` | `memory/bots/{id}.md` |
+| **Daily Memory** | `memory/YYYY-MM-DD.md` | `memory/channels/` |
+| **触发方式** | Compaction + Heartbeat | 同上 + Bot自主决策 |
+| **可见性控制** | Main Session vs 共享 | 5层分级可见性 |
+| **组织 Memory** | 无 | `memory/organizations/` |
+
+---
+
 ## 📚 参考
 
 - **OpenClaw 技能**: `/usr/lib/node_modules/openclaw/skills/`
 - **Agentic 工程最佳实践**: `docs/archive/2026-03-06/HowToBeAWorld-ClassAgenticEngineer.md`
+- **Memory 调研报告**: `docs/research/agent_memory_research.md`
 - **当前配置**: `config/multi_bot.yaml`
 - **系统提示**: `SYSTEM_PROMPT.md`
 
