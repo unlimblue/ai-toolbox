@@ -53,8 +53,8 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    A[用户@丞相] --> B[丞相理解]
-    B --> C[内阁@太尉]
+    A[用户指令] --> B[丞相理解]
+    B --> C[内阁通知]
     C --> D[太尉回应]
     D --> E[丞相汇报]
     
