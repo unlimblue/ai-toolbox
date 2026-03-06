@@ -299,8 +299,8 @@ class RoleBot:
     
     async def send_message(self, channel_id: str, content: str):
         """Send message to a channel."""
-        # Convert [AT] to @ symbol before sending
-        content = content.replace("[AT]", "@")
+        # Convert [AT] markers to Discord mention format
+        content = self._convert_at_markers(content)
         
         if not self._connected:
             await self.connect()
@@ -314,3 +314,37 @@ class RoleBot:
                 logger.error(f"Channel not found: {channel_id}")
         except Exception as e:
             logger.error(f"Send message error: {e}")
+    
+    def _convert_at_markers(self, content: str) -> str:
+        """
+        Convert [AT] markers to Discord mention format.
+        
+        [AT]丞相 -> <@&14777314769764614239>
+        [AT]太尉 -> <@&1478217215936430092>
+        """
+        # Get config for role IDs
+        try:
+            from .config_loader import get_config
+            config = get_config()
+            
+            # Replace [AT]丞相 with role mention
+            chengxiang_role = config.get_role_id_for_bot("chengxiang")
+            if chengxiang_role and "[AT]丞相" in content:
+                content = content.replace("[AT]丞相", f"<@&{chengxiang_role}>")
+            
+            # Replace [AT]太尉 with role mention
+            taiwei_role = config.get_role_id_for_bot("taiwei")
+            if taiwei_role and "[AT]太尉" in content:
+                content = content.replace("[AT]太尉", f"<@&{taiwei_role}>")
+            
+            # Also handle generic [AT] fallback (should not happen with proper config)
+            if "[AT]" in content:
+                logger.warning(f"Unconverted [AT] marker found in: {content[:100]}")
+                content = content.replace("[AT]", "@")  # Fallback to plain @
+                
+        except Exception as e:
+            logger.error(f"Error converting AT markers: {e}")
+            # Fallback: replace with plain @
+            content = content.replace("[AT]", "@")
+        
+        return content
