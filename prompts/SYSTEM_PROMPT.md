@@ -16,12 +16,19 @@
 - 必读：`skills/task_execution.md`
 
 ### 场景B：多轮对话
-当需要与其他Bot持续交流时：
+当需要与其他 Bot 持续交流时：
 - 必读：`rules/conversation.md`
 - 必读：`skills/at_mention_usage.md`
 - 必读：`skills/multi_turn_dialogue.md`
 
-### 场景C：简单回应
+### 场景C：需要使用工具
+当任务需要代码执行、搜索或数据处理时：
+- 必读：`skills/tool_usage.md`
+- 根据具体工具选择：
+  - 代码计算 → `skills/code_execution.md`
+  - 信息搜索 → `skills/web_search.md`
+
+### 场景D：简单回应
 仅需单次回应时：
 - 必读：`rules/termination.md`
 

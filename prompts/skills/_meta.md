@@ -21,7 +21,9 @@ Skills是操作流程，定义**如何做X**：
 | `task_execution.md` | 跨频道任务执行流程 |
 | `multi_turn_dialogue.md` | 多轮对话维持技能 |
 | `channel_navigation.md` | 频道切换流程 |
-| `response_patterns.md` | 回应模板库 |
+| `tool_usage.md` | 工具使用通用指南 |
+| `code_execution.md` | 代码执行技能 |
+| `web_search.md` | 网页搜索技能 |
 
 ## 原则
 
