@@ -22,23 +22,30 @@
 
 ### 从命令执行到自主决策
 
-传统 Bot 系统的局限性：
+```mermaid
+flowchart LR
+    subgraph 传统[传统架构：命令执行]
+        A1[用户指令] --> B1[系统解析]
+        B1 --> C1[创建任务]
+        C1 --> D1[Bot执行]
+    end
+    
+    subgraph 新[新架构：自主决策]
+        A2[用户指令] --> B2[系统转发]
+        B2 --> C2[AI理解]
+        C2 --> D2[AI决策]
+        D2 --> E2[AI执行]
+    end
+    
+    style B1 fill:#faa
+    style C1 fill:#faa
+    style B2 fill:#afa
+    style C2 fill:#afa
+    style D2 fill:#afa
+    style E2 fill:#afa
+```
 
-```
-传统模式：
-用户指令 → 系统解析 → 创建任务 → Bot 执行固定动作
-              ↑
-        硬编码解析逻辑，限制灵活性
-```
-
-AI-Toolbox 的突破：
-
-```
-新模式：
-用户指令 → 系统转发 → AI 自主理解 → AI 自主决策 → AI 执行
-              ↑                              ↑
-        不做任何解析                    完全自主，像人类
-```
+**转变**: 红色=硬编码限制，绿色=自主灵活
 
 ### 核心设计原则
 
@@ -55,38 +62,36 @@ AI-Toolbox 的突破：
 
 ### 整体架构图
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                              AI-Toolbox 系统                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│   ┌──────────────┐    ┌──────────────┐    ┌──────────────────────────┐ │
-│   │   Discord    │    │  HubListener │    │       MessageBus         │ │
-│   │   Gateway    │───▶│              │───▶│                          │ │
-│   └──────────────┘    └──────────────┘    │  • 无指令解析            │ │
-│                                            │  • 直接转发给被@Bot      │ │
-│                                            │  • 维护 ContextGraph     │ │
-│                                            └──────────┬─────────────────┘ │
-│                                                       │                   │
-│                                            ┌──────────┘                   │
-│                                            ▼                              │
-│                                    ┌──────────────────┐                   │
-│                                    │ ContextGraph     │                   │
-│                                    │ Manager          │                   │
-│                                    │                  │                   │
-│                                    │ • 存储消息历史   │                   │
-│                                    │ • 计算可见性     │                   │
-│                                    │ • 提取子图       │                   │
-│                                    └────────┬─────────┘                   │
-│                                             │                             │
-│                              ┌──────────────┼──────────────┐              │
-│                              ▼              ▼              ▼              │
-│                        ┌──────────┐  ┌──────────┐  ┌──────────┐         │
-│                        │ RoleBot  │  │ RoleBot  │  │ RoleBot  │         │
-│                        │ (丞相)   │  │ (太尉)   │  │ (其他)   │         │
-│                        └──────────┘  └──────────┘  └──────────┘         │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
+```mermaid
+flowchart TB
+    DG[Discord Gateway] --> HL[HubListener]
+    HL --> MB[MessageBus]
+    
+    subgraph 系统层[System Layer]
+        MB
+    end
+    
+    MB --> CGM[ContextGraphManager]
+    
+    subgraph 上下文层[Context Layer]
+        CGM
+    end
+    
+    MB --> RB1[RoleBot 丞相]
+    MB --> RB2[RoleBot 太尉]
+    MB --> RB3[RoleBot ...]
+    
+    subgraph AI层[AI Layer]
+        RB1
+        RB2
+        RB3
+    end
+    
+    style MB fill:#ff9
+    style CGM fill:#9ff
+    style RB1 fill:#9f9
+    style RB2 fill:#9f9
+    style RB3 fill:#9f9
 ```
 
 ### 组件职责
@@ -196,10 +201,10 @@ async def handle_message(self, message: UnifiedMessage, graph_id: str):
     context = self.graph_manager.get_context_for_bot(graph_id, self.bot_id)
     
     # 2. 构建决策 Prompt
-    prompt = self._build_decision_prompt(message, context)
+    decision_prompt = self._build_decision_prompt(message, context)
     
     # 3. AI 决策（JSON 格式）
-    actions = await self._ai_decide(prompt)
+    actions = await self._ai_decide(decision_prompt)
     # actions: [{"channel_id": "...", "content": "...", "reason": "..."}]
     
     # 4. 执行动作
@@ -211,6 +216,10 @@ async def handle_message(self, message: UnifiedMessage, graph_id: str):
 
 ```
 你收到了一条消息，需要自主决定如何响应。
+
+## 你的信息
+- 身份: 丞相
+- 位置: 金銮殿
 
 ## 收到的消息
 来自: 皇帝
@@ -225,10 +234,13 @@ async def handle_message(self, message: UnifiedMessage, graph_id: str):
 - 内阁 (neige): ID 1477312823817277681
 
 ## 协作对象
-- 太尉: <@&1478217215936430092>
+- 太尉: \u003c@\u00261478217215936430092\u003e
 
 ## 输出格式
+
 用 JSON 格式输出你的行动计划:
+
+```json
 {
   "actions": [
     {
@@ -236,8 +248,13 @@ async def handle_message(self, message: UnifiedMessage, graph_id: str):
       "content": "消息内容（可以包含 @）",
       "reason": "简要说明"
     }
-  ]
+  ],
+  "plan": "简要说明你的整体计划"
 }
+```
+
+如果只做一个动作，actions 数组只有一个元素。
+如果不需响应，返回空数组。
 ```
 
 ---
@@ -246,68 +263,42 @@ async def handle_message(self, message: UnifiedMessage, graph_id: str):
 
 ### 标准流程
 
-```
-1. 用户发送消息
-   "@丞相 去内阁通知太尉"
-
-2. Discord → HubListener
-   - 接收 Discord 消息
-   - 转换为 UnifiedMessage
-
-3. HubListener → MessageBus.publish()
-   - 创建/获取频道图
-   - 添加消息到图
-   - 计算可见性
-   - 转发给丞相
-
-4. MessageBus → RoleBot.handle_message()
-   - 提取相关上下文
-   - 构建决策 Prompt
-   - 调用 AI 决策
-
-5. AI 决策输出
-   {
-     "actions": [
-       {
-         "channel_id": "1477312823817277681",
-         "content": "<@&1478217215936430092> 太尉大人，陛下召您...",
-         "reason": "在内阁通知太尉"
-       }
-     ]
-   }
-
-6. RoleBot 执行动作
-   - 发送消息到内阁
-   - @太尉
-
-7. 太尉收到消息
-   - MessageBus 转发
-   - 太尉 AI 决策回应
+```mermaid
+sequenceDiagram
+    participant U as 用户
+    participant H as HubListener
+    participant MB as MessageBus
+    participant CG as ContextGraph
+    participant AI as AI Bot
+    
+    U->>H: @丞相 去内阁通知太尉
+    H->>MB: 转发消息
+    MB->>CG: 添加到图
+    MB->>AI: 转发给丞相
+    Note over AI: 自主决策
+    AI->>MB: 决策：去内阁@太尉
+    MB->>U: 太尉收到通知
 ```
 
 ### 跨频道对话流
 
-```
-金銮殿:
-  用户: "@丞相 @太尉 去内阁商议"
-         ↓
-  丞相: "领旨，即刻前往内阁"
-         ↓
-  [频道转换]
-
-内阁:
-  丞相: "@太尉 请前来商议"
-         ↓
-  太尉: "丞相大人，臣在"
-         ↓
-  丞相: "边防方案如何？"
-         ↓
-  太尉: "臣以为可行..."
-         ↓
-  [频道转换]
-
-金銮殿:
-  丞相: "启禀陛下，商议完毕..."
+```mermaid
+sequenceDiagram
+    participant J as 金銮殿
+    participant N as 内阁
+    
+    Note over J,N: 阶段1: 金銮殿
+    J->>J: 用户: @丞相 @太尉 去内阁商议
+    J->>J: 丞相: 领旨，即刻前往内阁
+    
+    Note over J,N: 阶段2: 内阁
+    N->>N: 丞相: @太尉 请前来商议
+    N->>N: 太尉: 丞相大人，臣在
+    N->>N: 丞相: 边防方案如何？
+    N->>N: 太尉: 臣以为可行...
+    
+    Note over J,N: 阶段3: 金銮殿
+    J->>J: 丞相: 启禀陛下，商议完毕...
 ```
 
 ---
@@ -329,57 +320,60 @@ async def handle_message(self, message: UnifiedMessage, graph_id: str):
 
 ### 可见性传播
 
-```
-消息1: 用户 @丞相
-       │
-       ├── 可见: [丞相]
-       │
-       └── 丞相回复消息2
-               │
-               ├── 可见: [丞相] (作者)
-               ├── 可见继承: [用户] (父消息可见者)
-               └── 如果 @太尉: [太尉] 也可见
+```mermaid
+graph LR
+    M1[消息1: 用户指令] --> V1[可见: 丞相]
+    M1 --> M2[消息2: 丞相回复]
+    M2 --> V2[可见: 丞相, 用户]
+    M2 --> M3[消息3: @太尉]
+    M3 --> V3[可见: 丞相, 太尉]
+    
+    style M1 fill:#bbf
+    style M2 fill:#bbf
+    style M3 fill:#bbf
 ```
 
 ### 复杂场景支持
 
 **场景 1: Broadcast（一个 @ 多个）**
 
-```
-用户: "@丞相 @太尉 @尚书 商议"
-
-图结构:
-    用户
-     │
-     ├──► 丞相（可见）
-     ├──► 太尉（可见）
-     └──► 尚书（可见）
-
-每个 Bot 都能看到用户消息
+```mermaid
+graph TB
+    U[用户] --> C[丞相]
+    U --> T[太尉]
+    U --> S[尚书]
+    
+    style U fill:#ff9
+    style C fill:#9f9
+    style T fill:#9f9
+    style S fill:#9f9
 ```
 
 **场景 2: Merge（多个 @ 一个）**
 
-```
-太尉: "@丞相 方案A可行"
-尚书: "@丞相 方案B更好"
-
-图结构:
-  太尉 ──┐
-         ▼
-        丞相 ◄── 尚书
-
-丞相的上下文包含两条分支
+```mermaid
+graph TB
+    T[太尉] --> C[丞相]
+    S[尚书] --> C
+    
+    style T fill:#9f9
+    style S fill:#9f9
+    style C fill:#ff9
 ```
 
 **场景 3: 跨频道**
 
-```
-金銮殿图        内阁图
-  消息1  ═══════► 消息2
-         (跨边)
-
-丞相的上下文自动合并两个频道
+```mermaid
+graph LR
+    subgraph J[金銮殿]
+        M1[消息1]
+    end
+    
+    subgraph N[内阁]
+        M2[消息2]
+    end
+    
+    M1 -. 跨边 .-> M2
 ```
 
 ---
@@ -405,7 +399,7 @@ JSON 格式动作列表：
     {
       "channel_id": "1477312823817277681",
       "channel_name": "内阁",
-      "content": "<@&1478217215936430092> 太尉大人...",
+      "content": "\u003c@\u00261478217215936430092\u003e 太尉大人...",
       "reason": "在内阁通知太尉"
     },
     {
