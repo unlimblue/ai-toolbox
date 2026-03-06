@@ -97,6 +97,30 @@ class ContextGraphManager:
             return self.graphs[graph_id]
         return self.create_channel_graph(channel_id)
     
+    def get_or_create_graph(self, graph_id: str, graph_type: str = "channel",
+                           channel_id: str = None) -> ContextGraph:
+        """Get existing graph or create new one.
+        
+        Args:
+            graph_id: The graph ID
+            graph_type: Type of graph ("channel" or "task")
+            channel_id: Channel ID (required for channel graphs)
+        """
+        if graph_id in self.graphs:
+            return self.graphs[graph_id]
+        
+        # Create new graph
+        if graph_type == "channel" and channel_id:
+            return self.create_channel_graph(channel_id)
+        else:
+            # Generic graph creation
+            graph = ContextGraph(
+                graph_id=graph_id,
+                graph_type=graph_type
+            )
+            self.graphs[graph_id] = graph
+            return graph
+    
     def get_graph(self, graph_id: str) -> Optional[ContextGraph]:
         """Get a graph by ID."""
         return self.graphs.get(graph_id)
