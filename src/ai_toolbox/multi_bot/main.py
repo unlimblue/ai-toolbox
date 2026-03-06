@@ -21,20 +21,21 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def create_bot_from_config(bot_id: str, config: MultiBotConfig) -> RoleBot:
+def create_bot_from_config(bot_id: str, config: MultiBotConfig, graph_manager=None) -> RoleBot:
     """
-    Create RoleBot instance from configuration with architecture awareness.
+    Create RoleBot instance from configuration.
     
     Args:
         bot_id: Bot identifier
         config: MultiBotConfig instance
+        graph_manager: ContextGraphManager instance
         
     Returns:
-        RoleBot instance with full system architecture awareness
+        RoleBot instance
     """
     bot_config_dict = config.get_bot_config(bot_id)
     
-    # Build system prompt with architecture awareness
+    # Build system prompt
     system_prompt = build_system_prompt(bot_id, config, context="")
     
     # Create BotConfig
@@ -55,15 +56,7 @@ def create_bot_from_config(bot_id: str, config: MultiBotConfig) -> RoleBot:
         persona=persona
     )
     
-    # Build architecture info for the bot
-    architecture_info = {
-        "bot_id": bot_id,
-        "bot_name": bot_config_dict.get("name", bot_id),
-        "bot_user_id": config.get_user_id_for_bot(bot_id),
-        "bot_role_id": config.get_role_id_for_bot(bot_id),
-    }
-    
-    return RoleBot(bot_config, architecture_info=architecture_info)
+    return RoleBot(bot_config, graph_manager=graph_manager)
 
 
 async def main():
@@ -100,15 +93,18 @@ async def main():
     
     logger.info("All required environment variables found")
     
-    # Initialize Message Bus
+    # Initialize Message Bus with ContextGraphManager
+    from .graph_manager import ContextGraphManager
+    graph_manager = ContextGraphManager()
     bus = MessageBus()
+    bus.graph_manager = graph_manager
     
-    # Create and register bots from configuration with architecture awareness
+    # Create and register bots from configuration
     for bot_id in config.bots.keys():
         try:
-            bot = create_bot_from_config(bot_id, config)
-            bus.register_bot(bot)
-            logger.info(f"Created and registered bot with architecture awareness: {bot_id}")
+            bot = create_bot_from_config(bot_id, config, graph_manager)
+            bus.register_bot(bot_id, bot)
+            logger.info(f"Created and registered bot: {bot_id}")
         except Exception as e:
             logger.error(f"Failed to create bot {bot_id}: {e}")
     
