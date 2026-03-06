@@ -196,30 +196,34 @@ class MessageBus:
         }
         
         # Find which channel is mentioned
-        mentioned_channel = None
+        # Strategy: find all mentioned channels, prefer the one that's NOT the source channel
+        mentioned_channels = []
         for alias, channel_key in channel_aliases.items():
             if alias in content:
+                channel_id = config.resolve_channel_id(channel_key)
+                if channel_id:
+                    mentioned_channels.append((channel_key, channel_id, alias))
+                    logger.debug(f"Found channel alias: {alias} -> {channel_key} ({channel_id})")
+        
+        # Select target channel
+        # Priority 1: Channel that is NOT the source channel (for cross-channel tasks)
+        # Priority 2: Any mentioned channel (fallback)
+        mentioned_channel = None
+        target_channel_id = None
+        
+        for channel_key, channel_id, alias in mentioned_channels:
+            if channel_id != message.channel_id:
+                # Found a channel that is different from source
                 mentioned_channel = channel_key
-                logger.debug(f"Found channel alias: {alias} -> {channel_key}")
+                target_channel_id = channel_id
+                logger.debug(f"Selected cross-channel target: {alias} ({channel_id})")
                 break
         
-        if not (has_mention and has_action and mentioned_channel):
-            logger.debug(f"Task parsing failed: mention={has_mention}, action={has_action}, channel={mentioned_channel}")
-            return None
-        
-        # Resolve channel ID from config
-        target_channel_id = config.resolve_channel_id(mentioned_channel)
-        logger.debug(f"Resolved channel: {mentioned_channel} -> {target_channel_id}")
-        
-        if not target_channel_id:
-            logger.debug(f"Task parsing failed: could not resolve channel ID for {mentioned_channel}")
-            return None
-        
-        # Don't create task if target is same as source
-        logger.debug(f"Checking: target={target_channel_id}, source={message.channel_id}")
-        if target_channel_id == message.channel_id:
-            logger.debug(f"Task parsing failed: target same as source")
-            return None
+        # If no cross-channel target found, use the first mentioned (but will fail same-channel check later)
+        if not mentioned_channel and mentioned_channels:
+            mentioned_channel = mentioned_channels[0][0]
+            target_channel_id = mentioned_channels[0][1]
+            logger.debug(f"No cross-channel target found, using first: {mentioned_channels[0][2]}")
         
         # Collect all target bots
         target_bots = list(message.mentions) if message.mentions else []
