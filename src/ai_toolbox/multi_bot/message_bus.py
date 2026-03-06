@@ -81,6 +81,9 @@ class MessageBus:
         # 1. Add to ContextGraph (automatic, no parsing)
         graph_id = self._get_graph_id(message.channel_id)
         try:
+            # Ensure graph exists
+            self.graph_manager.get_or_create_graph(graph_id)
+            
             self.graph_manager.add_message_to_graph(
                 graph_id=graph_id,
                 message_id=message.id,
